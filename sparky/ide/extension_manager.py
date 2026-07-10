@@ -17,9 +17,9 @@
 # Extensions window with their error instead.
 
 import importlib.util
-from pathlib import Path
 
-EXTENSIONS_DIR = Path(__file__).resolve().parent.parent.parent / "extensions"
+from ..paths import EXTENSIONS_DIR
+
 ACCENTS = ("accent", "accent2", "accent3")
 
 
@@ -55,7 +55,7 @@ class ExtensionManager:
         self.api = ExtensionAPI()
 
     def discover(self):
-        EXTENSIONS_DIR.mkdir(exist_ok=True)
+        EXTENSIONS_DIR.mkdir(parents=True, exist_ok=True)
         self.extensions = []
         self.api = ExtensionAPI()
         for path in sorted(EXTENSIONS_DIR.glob("*.py")):

@@ -12,7 +12,18 @@ and Linux.
 
 Created by **Mohith** — [mohith2309.github.io](https://mohith2309.github.io)
 
-## Run it
+## Install it (easiest)
+
+**Mac:** grab `Sparky-macOS.zip` from
+[Releases](https://github.com/mohith2309/sparky/releases), unzip, and
+drag `Sparky.app` to Applications. Everything — Python, Qt, examples —
+is inside the app; nothing else to install. It's unsigned, so the
+first time: **right-click → Open**.
+
+Your programs, gallery, and extensions live in a friendly `~/Sparky`
+folder the app creates on first launch.
+
+## Or run from source
 
 | Platform | Double-click |
 |---|---|
@@ -113,6 +124,8 @@ heading 0 points up and `turn` goes clockwise.
 - `sparky/ide/` — the PyQt6 IDE (editor, stage, blocks, runner, themes)
 - `examples/` — programs in the IDE's Examples menu
 - `tests/test_lang.py` — run with `python3 tests/test_lang.py`
+- `scripts/build_standalone.sh` — builds the self-contained
+  `dist/Sparky.app` + release zip (PyInstaller)
 
 Made by Mohith as a learning project — the whole thing is meant to be
 read, poked at, and extended.

@@ -23,9 +23,7 @@ from .runner import RunnerThread
 from .sounds import SoundBank
 from .stage import StageModel, StageView
 from .theme import LIGHT, DARK, build_qss, HEADING_FONTS
-
-EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent / "examples"
-ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
+from ..paths import ASSETS_DIR, EXAMPLES_DIR, prepare_user_dirs
 
 WELCOME = '''\
 # Welcome to Sparky!
@@ -63,6 +61,7 @@ class MainWindow(QMainWindow):
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
+        prepare_user_dirs()
         self.sound_bank = SoundBank()
         self.extension_manager = ExtensionManager()
         self.extension_manager.discover()

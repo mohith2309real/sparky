@@ -14,8 +14,7 @@ from .runner import RunnerThread
 from .sounds import SoundBank
 from .stage import StageModel, StageView
 from .theme import LIGHT, build_qss, HEADING_FONTS
-
-ASSETS = Path(__file__).resolve().parent.parent.parent / "assets"
+from ..paths import ASSETS_DIR as ASSETS
 
 
 class PlayerWindow(QMainWindow):

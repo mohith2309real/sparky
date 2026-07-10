@@ -1,8 +1,6 @@
 # Small dialogs: About (credits), Community (sharing + gallery),
 # and Settings.
 
-from pathlib import Path
-
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QDesktopServices, QPixmap
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
@@ -10,11 +8,10 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                              QPushButton, QSlider, QSpinBox, QVBoxLayout)
 
 from .. import __version__
-from .extension_manager import EXTENSIONS_DIR
+from ..paths import (ASSETS_DIR as ASSETS, EXTENSIONS_DIR,
+                     GALLERY_DIR as GALLERY)
 
 SITE_URL = "https://mohith2309.github.io"
-ASSETS = Path(__file__).resolve().parent.parent.parent / "assets"
-GALLERY = Path(__file__).resolve().parent.parent.parent / "gallery"
 
 
 def open_site():

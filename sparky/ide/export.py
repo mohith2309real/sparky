@@ -6,13 +6,27 @@
 import os
 import re
 import stat
+import sys
 from pathlib import Path
 
 from PyQt6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
 
 from .dialogs import SITE_URL
+from ..paths import FROZEN
 
 SPARKY_DIR = Path(__file__).resolve().parent.parent.parent
+
+
+def player_command_unix():
+    """The shell lines that launch the player, for .command/.sh files."""
+    if FROZEN:
+        # standalone app: everything is inside the app bundle itself
+        return f'exec "{sys.executable}" play "$DIR/$PROGRAM"'
+    return (f'SPARKY="{SPARKY_DIR}"\n'
+            'PY="$SPARKY/.venv/bin/python"\n'
+            '[ -x "$PY" ] || PY=python3\n'
+            'cd "$SPARKY" || exit 1\n'
+            'exec "$PY" -m sparky play "$DIR/$PROGRAM"')
 
 
 def safe_name(name):
@@ -50,26 +64,20 @@ def make_app(main_window):
     program = folder / f"{name}.spark"
     program.write_text(source, encoding="utf-8")
 
+    launch = player_command_unix().replace("$PROGRAM", f"{name}.spark")
+
     mac = folder / f"Play {name}.command"
     mac.write_text(f"""#!/bin/zsh
 # {name} — made with Sparky ({SITE_URL})
 DIR="$(cd "$(dirname "$0")" && pwd)"
-SPARKY="{SPARKY_DIR}"
-PY="$SPARKY/.venv/bin/python"
-[ -x "$PY" ] || PY=python3
-cd "$SPARKY" || exit 1
-exec "$PY" -m sparky play "$DIR/{name}.spark"
+{launch}
 """, encoding="utf-8")
 
     linux = folder / f"play_{name.replace(' ', '_').lower()}.sh"
     linux.write_text(f"""#!/bin/sh
 # {name} — made with Sparky ({SITE_URL})
 DIR="$(cd "$(dirname "$0")" && pwd)"
-SPARKY="{SPARKY_DIR}"
-PY="$SPARKY/.venv/bin/python"
-[ -x "$PY" ] || PY=python3
-cd "$SPARKY" || exit 1
-exec "$PY" -m sparky play "$DIR/{name}.spark"
+{launch}
 """, encoding="utf-8")
 
     for script in (mac, linux):

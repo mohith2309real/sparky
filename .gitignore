@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 .DS_Store
 build_iconset.iconset/
+
+# standalone app builds (shipped via GitHub Releases, not git)
+build/
+dist/
+*.spec
