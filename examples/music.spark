@@ -1,0 +1,27 @@
+# Ode to Joy — Sparky can sing! Notes 1-14 are two do-re-mi octaves.
+# Try making your own song, or speed it up by shrinking the times.
+
+say "🎵 Ode to Joy!"
+
+teach note1 n
+  play note n for 0.35
+end
+
+do note1 3
+do note1 3
+do note1 4
+do note1 5
+do note1 5
+do note1 4
+do note1 3
+do note1 2
+do note1 1
+do note1 1
+do note1 2
+do note1 3
+play note 3 for 0.5
+play note 2 for 0.2
+play note 2 for 0.7
+
+play "tada"
+say "Now write YOUR song!"

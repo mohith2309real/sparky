@@ -1,0 +1,41 @@
+# A fractal tree — a command that does ITSELF. (That's recursion!)
+# Each branch grows two smaller branches, until they're too small.
+
+speed 10
+background "cream"
+hide
+
+teach branch length
+  if length > 7 then
+    if length > 25 then
+      pen color "brown"
+    else
+      pen color "green"
+    end
+    pen size length / 9
+    pen down
+    move length
+    turn left 24
+    do branch length * 0.72
+    turn 48
+    do branch length * 0.72
+    turn left 24
+    if length > 25 then
+      pen color "brown"
+    else
+      pen color "green"
+    end
+    pen size length / 9
+    back length
+  end
+end
+
+pen up
+goto 0 -160
+point 0
+do branch 95
+
+pen up
+goto 0 -175
+pen color "ink"
+write "grown with recursion"

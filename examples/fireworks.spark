@@ -1,0 +1,34 @@
+# Random fireworks, forever! Press Stop when you've seen enough.
+
+speed 10
+background "ink"
+pen size 2
+hide
+
+teach burst x y length
+  pen up
+  goto x y
+  point 0
+  repeat 12 times
+    pen down
+    move length
+    pen up
+    back length
+    turn 30
+  end
+end
+
+forever
+  set pick to random 1 to 4
+  if pick = 1 then
+    pen color "orange"
+  else if pick = 2 then
+    pen color "yellow"
+  else if pick = 3 then
+    pen color "pink"
+  else
+    pen color "cyan"
+  end
+  do burst random -180 to 180 random -120 to 120 random 15 to 45
+  wait 0.3
+end

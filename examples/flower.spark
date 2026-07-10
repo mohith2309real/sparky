@@ -1,0 +1,27 @@
+# Teach Sparky a new trick, then use it to draw a flower.
+
+speed 10
+background "cream"
+pen size 3
+
+teach petal length
+  repeat 2 times
+    repeat 12 times
+      move length / 12
+      turn 5
+    end
+    turn 120
+  end
+end
+
+pen color "orange"
+repeat 12 times
+  do petal 90
+  turn 30
+end
+
+pen up
+goto 0 -60
+pen color "green"
+write "a flower for you"
+hide

@@ -1,0 +1,10 @@
+# Your first Sparky program!
+
+ask "What's your name?" into name
+say "Hello, " + name + "!"
+
+if name is "sparky" then
+  say "Hey, that's MY name!"
+else
+  say "Nice to meet you, " + name + "."
+end

@@ -1,0 +1,20 @@
+# A guessing game! Sparky picks a number from 1 to 20.
+
+set secret to random 1 to 20
+set tries to 0
+set guess to -1
+
+say "I'm thinking of a number from 1 to 20..."
+
+repeat until guess = secret
+  ask "Your guess?" into guess
+  change tries by 1
+  if guess > secret then
+    say "Too big! Try smaller."
+  else if guess < secret then
+    say "Too small! Try bigger."
+  end
+end
+
+say "YES! You got it in " + tries + " tries!"
+beep

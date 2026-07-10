@@ -1,0 +1,6 @@
+# environment & caches
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+build_iconset.iconset/

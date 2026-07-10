@@ -1,0 +1,24 @@
+# A colorful spiral — watch the stage!
+
+speed 9
+background "ink"
+pen size 4
+
+set steps to 0
+set length to 2
+
+repeat 60 times
+  if steps mod 3 = 0 then
+    pen color "orange"
+  else if steps mod 3 = 1 then
+    pen color "blue"
+  else
+    pen color "green"
+  end
+  move length
+  turn 59
+  change length by 3
+  change steps by 1
+end
+
+hide
