@@ -17,8 +17,18 @@ Created by **Mohith** — [mohith2309.github.io](https://mohith2309.github.io)
 **Mac:** grab `Sparky-macOS.zip` from
 [Releases](https://github.com/mohith2309/sparky/releases), unzip, and
 drag `Sparky.app` to Applications. Everything — Python, Qt, examples —
-is inside the app; nothing else to install. It's unsigned, so the
-first time: **right-click → Open**.
+is inside the app; nothing else to install.
+
+**First open:** macOS will say it *"can't verify the app is free of
+malware"* — that's because Sparky isn't notarized with a paid Apple
+Developer account, not because anything is wrong. Two ways past it:
+
+1. Double-click (it gets blocked) → open **System Settings →
+   Privacy & Security**, scroll down, press **Open Anyway** → confirm.
+2. Or in Terminal:
+   `xattr -dr com.apple.quarantine /Applications/Sparky.app`
+
+Either way it's a one-time thing — after that it opens like any app.
 
 Your programs, gallery, and extensions live in a friendly `~/Sparky`
 folder the app creates on first launch.
