@@ -233,3 +233,85 @@ class PlaySound(Node):
         self.kind = kind
         self.value = value
         self.duration = duration
+
+
+# ---------- Sparky 1.1: lists, functions with results, for loops ----------
+
+class Nothing(Node):
+    """The value `nothing` (what a function gives back when it gives nothing)."""
+
+
+class ListLit(Node):
+    def __init__(self, items, line):
+        super().__init__(line)
+        self.items = items
+
+
+class Index(Node):
+    # item INDEX of TARGET   (items count from 1)
+    def __init__(self, target, index, line):
+        super().__init__(line)
+        self.target = target
+        self.index = index
+
+
+class Call(Node):
+    # name(arg, arg) — a built-in function or one you taught
+    def __init__(self, name, args, line):
+        super().__init__(line)
+        self.name = name
+        self.args = args
+
+
+class ExprStatement(Node):
+    def __init__(self, expr, line):
+        super().__init__(line)
+        self.expr = expr
+
+
+class Return(Node):
+    def __init__(self, value, line):
+        super().__init__(line)
+        self.value = value
+
+
+class ForEach(Node):
+    def __init__(self, name, iterable, body, line):
+        super().__init__(line)
+        self.name = name
+        self.iterable = iterable
+        self.body = body
+
+
+class ForRange(Node):
+    def __init__(self, name, start, stop, step, body, line):
+        super().__init__(line)
+        self.name = name
+        self.start = start
+        self.stop = stop
+        self.step = step
+        self.body = body
+
+
+class AddTo(Node):
+    # add VALUE to NAME — appends to a list, adds to a number, joins text
+    def __init__(self, value, name, line):
+        super().__init__(line)
+        self.value = value
+        self.name = name
+
+
+class RemoveFrom(Node):
+    def __init__(self, value, name, line):
+        super().__init__(line)
+        self.value = value
+        self.name = name
+
+
+class SetItem(Node):
+    # set item INDEX of NAME to VALUE
+    def __init__(self, name, index, value, line):
+        super().__init__(line)
+        self.name = name
+        self.index = index
+        self.value = value

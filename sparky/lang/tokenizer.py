@@ -8,12 +8,12 @@ from .errors import SparkyError
 NUMBER = "NUMBER"
 STRING = "STRING"
 WORD = "WORD"      # keywords and variable names (lowercased)
-OP = "OP"          # + - * / ( ) , = > < >= <=
+OP = "OP"          # + - * / ( ) [ ] , = > < >= <=
 NEWLINE = "NEWLINE"
 EOF = "EOF"
 
 TWO_CHAR_OPS = (">=", "<=")
-ONE_CHAR_OPS = "+-*/(),=><"
+ONE_CHAR_OPS = "+-*/(),=><[]"
 
 # words after which a "-" is still an operator, not a negative number
 # (so "set x to -5" and "wait 2 - 1" both behave sensibly)
@@ -22,10 +22,13 @@ OPERATOR_WORDS = {"to", "by", "into", "times", "until", "then", "with",
 
 
 class Token:
-    def __init__(self, kind, value, line):
+    def __init__(self, kind, value, line, glued=False):
         self.kind = kind
         self.value = value
         self.line = line
+        # True when no space came before this token — "add(" is a call,
+        # "goto x (y)" is not
+        self.glued = glued
 
     def __repr__(self):
         return f"Token({self.kind}, {self.value!r}, line {self.line})"
@@ -36,6 +39,9 @@ def tokenize(source):
     line = 1
     i = 0
     n = len(source)
+
+    def glued(start):
+        return start > 0 and source[start - 1] not in " \t\r\n"
 
     while i < n:
         ch = source[i]
@@ -88,7 +94,7 @@ def tokenize(source):
                 and (tokens[-1].kind in (NUMBER, STRING)
                      or (tokens[-1].kind == WORD
                          and tokens[-1].value not in OPERATOR_WORDS)
-                     or (tokens[-1].kind == OP and tokens[-1].value == ")"))):
+                     or (tokens[-1].kind == OP and tokens[-1].value in ")]"))):
             start = i
             i += 1
             while i < n and (source[i].isdigit() or source[i] == "."):
@@ -123,12 +129,12 @@ def tokenize(source):
             continue
 
         if source[i:i + 2] in TWO_CHAR_OPS:
-            tokens.append(Token(OP, source[i:i + 2], line))
+            tokens.append(Token(OP, source[i:i + 2], line, glued(i)))
             i += 2
             continue
 
         if ch in ONE_CHAR_OPS:
-            tokens.append(Token(OP, ch, line))
+            tokens.append(Token(OP, ch, line, glued(i)))
             i += 1
             continue
 

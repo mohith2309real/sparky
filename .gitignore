@@ -9,3 +9,6 @@ build_iconset.iconset/
 build/
 dist/
 *.spec
+
+# VS Code themes/snippets installed while running from source
+vscode-extensions/

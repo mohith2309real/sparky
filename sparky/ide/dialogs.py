@@ -4,8 +4,9 @@
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QDesktopServices, QPixmap
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                             QFormLayout, QHBoxLayout, QLabel, QListWidget,
-                             QPushButton, QSlider, QSpinBox, QVBoxLayout)
+                             QFormLayout, QHBoxLayout, QLabel, QLineEdit,
+                             QListWidget, QPlainTextEdit, QPushButton, QSlider,
+                             QSpinBox, QTabWidget, QVBoxLayout, QWidget)
 
 from .. import __version__
 from ..paths import (ASSETS_DIR as ASSETS, EXTENSIONS_DIR,
@@ -120,9 +121,8 @@ class CommunityDialog(QDialog):
             return
         path = GALLERY / item.text()
         if path.exists():
-            if self.main_window.confirm_discard():
-                self.main_window.load_path(path)
-                self.main_window.raise_()
+            self.main_window.open_path(path)
+            self.main_window.raise_()
 
     def open_folder(self):
         GALLERY.mkdir(exist_ok=True)
@@ -130,69 +130,216 @@ class CommunityDialog(QDialog):
 
 
 class SettingsDialog(QDialog):
-    def __init__(self, main_window):
+    def __init__(self, main_window, tab="General"):
         super().__init__(main_window)
-        self.main_window = main_window
+        from . import ai, languages, vscode
+        self.ai, self.languages = ai, languages
+        self.main = main_window
         self.setWindowTitle("Settings")
-        self.setFixedWidth(380)
+        self.resize(560, 560)
+        settings = main_window.settings
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 14)
-        form = QFormLayout()
+        layout.setContentsMargins(16, 16, 16, 12)
+        self.tabs = QTabWidget()
+        layout.addWidget(self.tabs, 1)
+
+        # --- General ---
+        general = QWidget()
+        form = QFormLayout(general)
         form.setSpacing(12)
-
         self.theme = QComboBox()
-        self.theme.addItems(["Light", "Dark"])
-        self.theme.setCurrentIndex(1 if main_window.dark else 0)
+        self.theme.addItem("Light", "light")
+        self.theme.addItem("Dark", "dark")
+        for key, label, _dark in vscode.all_themes():
+            self.theme.addItem(f"{label}  (VS Code)", key)
+        index = self.theme.findData(main_window.theme_key)
+        self.theme.setCurrentIndex(max(0, index))
         form.addRow("Theme", self.theme)
-
         self.speed = QSlider(Qt.Orientation.Horizontal)
         self.speed.setRange(1, 10)
         self.speed.setValue(main_window.speed_slider.value())
         form.addRow("Default speed", self.speed)
-
         self.font_size = QSpinBox()
         self.font_size.setRange(10, 28)
-        self.font_size.setValue(main_window.editor.font().pointSize())
+        self.font_size.setValue(main_window.font_size)
         form.addRow("Code text size", self.font_size)
-
         self.autocomplete = QCheckBox("Suggest words while typing")
-        self.autocomplete.setChecked(main_window.editor.completions_enabled)
+        self.autocomplete.setChecked(main_window.completions_enabled)
         form.addRow("", self.autocomplete)
-
         self.sounds = QCheckBox("Play sounds")
         self.sounds.setChecked(main_window.sound_bank.enabled)
         form.addRow("", self.sounds)
-
         self.volume = QSlider(Qt.Orientation.Horizontal)
         self.volume.setRange(0, 100)
         self.volume.setValue(int(main_window.sound_bank.volume * 100))
         form.addRow("Volume", self.volume)
-
         self.welcome = QCheckBox("Show welcome on startup")
-        self.welcome.setChecked(main_window.settings.value(
-            "show_welcome", True, type=bool))
+        self.welcome.setChecked(settings.value("show_welcome", True, type=bool))
         form.addRow("", self.welcome)
+        self.tabs.addTab(general, "General")
 
-        layout.addLayout(form)
+        # --- Languages ---
+        langs = QWidget()
+        lform = QFormLayout(langs)
+        lform.setSpacing(10)
+        self.python = QComboBox()
+        self.python.setEditable(True)
+        self.python.addItem("Automatic", "")
+        for cmd in languages.python_candidates():
+            self.python.addItem(" ".join(cmd), cmd[0] if len(cmd) == 1 else "")
+        current = settings.value("python_path", "", type=str)
+        if current:
+            self.python.setEditText(current)
+        prow = QHBoxLayout()
+        prow.addWidget(self.python, 1)
+        check = QPushButton("Find")
+        check.setToolTip("List the Pythons on this computer and check for turtle graphics")
+        check.clicked.connect(self.check_pythons)
+        prow.addWidget(check)
+        lform.addRow("Python", prow)
+        self.python_note = QLabel("Python programs (and Sparky programs turned into "
+                                  "Python) run with this.")
+        self.python_note.setWordWrap(True)
+        self.python_note.setObjectName("FileLabel")
+        lform.addRow("", self.python_note)
+        self.node = QComboBox()
+        self.node.setEditable(True)
+        self.node.addItem("Automatic", "")
+        for cmd in languages.node_candidates():
+            self.node.addItem(cmd[0], cmd[0])
+        if settings.value("node_path", "", type=str):
+            self.node.setEditText(settings.value("node_path", "", type=str))
+        lform.addRow("Node.js", self.node)
+        self.commands = QPlainTextEdit(settings.value("run_commands", languages.DEFAULT_CUSTOM,
+                                                      type=str))
+        self.commands.setFixedHeight(120)
+        lform.addRow("Run commands", self.commands)
+        cnote = QLabel("One per line: .ext = command. {file} is the file to run.")
+        cnote.setObjectName("FileLabel")
+        lform.addRow("", cnote)
+        self.tabs.addTab(langs, "Languages")
+
+        # --- AI ---
+        aitab = QWidget()
+        aform = QFormLayout(aitab)
+        aform.setSpacing(10)
+        self.provider = QComboBox()
+        self.provider.addItems(list(ai.PROVIDERS))
+        self.provider.setCurrentText(settings.value("ai_provider", "Anthropic (Claude)", type=str))
+        self.provider.currentTextChanged.connect(self.provider_changed)
+        aform.addRow("Provider", self.provider)
+        self.base_url = QLineEdit(settings.value("ai_base_url", "", type=str))
+        aform.addRow("Base URL", self.base_url)
+        self.key = QLineEdit(settings.value("ai_key", "", type=str))
+        self.key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.key.setPlaceholderText("Paste your API key")
+        aform.addRow("API key", self.key)
+        mrow = QHBoxLayout()
+        self.model = QComboBox()
+        self.model.setEditable(True)
+        self.model.setEditText(settings.value("ai_model", "", type=str))
+        mrow.addWidget(self.model, 1)
+        load = QPushButton("Load models")
+        load.clicked.connect(self.load_models)
+        mrow.addWidget(load)
+        aform.addRow("Model", mrow)
+        self.tutor = QCheckBox("Tutor mode: hints and explanations before full answers")
+        self.tutor.setChecked(settings.value("ai_tutor", True, type=bool))
+        aform.addRow("", self.tutor)
+        self.instructions = QPlainTextEdit(settings.value("ai_instructions", "", type=str))
+        self.instructions.setPlaceholderText("Your own instructions for the AI, like: "
+                                             "Explain things like I'm 10. Use lots of emojis.")
+        self.instructions.setFixedHeight(90)
+        aform.addRow("Instructions", self.instructions)
+        self.ai_note = QLabel("")
+        self.ai_note.setWordWrap(True)
+        self.ai_note.setObjectName("FileLabel")
+        aform.addRow("", self.ai_note)
+        self.tabs.addTab(aitab, "AI")
+        self.provider_changed(self.provider.currentText(), first=True)
+
+        names = [self.tabs.tabText(i) for i in range(self.tabs.count())]
+        if tab in names:
+            self.tabs.setCurrentIndex(names.index(tab))
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok
                                    | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.apply_and_close)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        self.models_worker = None
+
+    def provider_changed(self, name, first=False):
+        kind, base, model, needs_key = self.ai.PROVIDERS[name]
+        if not first:
+            self.base_url.setText("")
+            self.model.clear()
+            self.model.setEditText(model)
+        self.base_url.setPlaceholderText(base or "https://your-provider.example/v1")
+        self.key.setEnabled(needs_key or kind == "anthropic")
+        if not self.model.currentText() and model:
+            self.model.setEditText(model)
+        tips = {
+            "anthropic": f"Uses Anthropic's official SDK. Default model: "
+                         f"{self.ai.ANTHROPIC_DEFAULT_MODEL}. Get a key at console.anthropic.com.",
+            "openai": "Works with any OpenAI-compatible API. Press Load models to pick one."}
+        local = "" if needs_key else " Runs on your own computer — no key needed."
+        self.ai_note.setText(tips[kind] + local +
+                             " Your key is saved only on this computer, in Sparky's settings.")
+
+    def load_models(self):
+        cfg = {"name": self.provider.currentText(),
+               "kind": self.ai.PROVIDERS[self.provider.currentText()][0],
+               "base_url": self.base_url.text().strip() or
+               self.ai.PROVIDERS[self.provider.currentText()][1],
+               "key": self.key.text().strip(), "model": ""}
+        self.ai_note.setText("Loading models…")
+        self.models_worker = self.ai.ModelsWorker(cfg, self)
+        self.models_worker.loaded.connect(self.models_loaded)
+        self.models_worker.failed.connect(lambda m: self.ai_note.setText("⚠️ " + m))
+        self.models_worker.start()
+
+    def models_loaded(self, names):
+        current = self.model.currentText()
+        self.model.clear()
+        self.model.addItems(names)
+        self.model.setEditText(current if current in names or not names else names[0])
+        self.ai_note.setText(f"Found {len(names)} model(s).")
+
+    def check_pythons(self):
+        rows = []
+        for cmd in self.languages.python_candidates():
+            turtle = "✓ turtle graphics" if self.languages.has_turtle(cmd) else "no turtle graphics"
+            rows.append(f"{' '.join(cmd)} — {turtle}")
+        self.python_note.setText("\n".join(rows) if rows else
+                                 "No Python found. Install it from python.org.")
 
     def apply_and_close(self):
-        w = self.main_window
-        w.dark = self.theme.currentIndex() == 1
-        w.apply_theme()
+        w = self.main
+        s = w.settings
         w.speed_slider.setValue(self.speed.value())
-        w.editor.set_font_size(self.font_size.value())
-        w.editor.completions_enabled = self.autocomplete.isChecked()
+        w.set_font_size_all(self.font_size.value())
+        w.completions_enabled = self.autocomplete.isChecked()
+        for editor in w.editors():
+            editor.completions_enabled = w.completions_enabled
         w.sound_bank.enabled = self.sounds.isChecked()
         w.sound_bank.volume = self.volume.value() / 100
-        w.settings.setValue("show_welcome", self.welcome.isChecked())
+        s.setValue("show_welcome", self.welcome.isChecked())
+        python = self.python.currentText().strip()
+        s.setValue("python_path", "" if python == "Automatic" or " " in python else python)
+        node = self.node.currentText().strip()
+        s.setValue("node_path", "" if node == "Automatic" else node)
+        s.setValue("run_commands", self.commands.toPlainText())
+        s.setValue("ai_provider", self.provider.currentText())
+        s.setValue("ai_base_url", self.base_url.text().strip())
+        s.setValue("ai_key", self.key.text().strip())
+        s.setValue("ai_model", self.model.currentText().strip())
+        s.setValue("ai_tutor", self.tutor.isChecked())
+        s.setValue("ai_instructions", self.instructions.toPlainText())
+        w.set_theme(self.theme.currentData())
         w.save_settings()
+        w.ai_panel.refresh_header()
         self.accept()
 
 

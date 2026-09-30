@@ -140,7 +140,7 @@ check("ask answer compares to number", _rt2.said == ["match"])
 rt, _ = run('teach cheer name\n  say "go " + name + "!"\nend\ndo cheer "team"')
 check("teach and do with input", rt.said == ["go team!"])
 
-rt, _ = run('teach add a b\n  say a + b\nend\ndo add 2 3')
+rt, _ = run('teach plus a b\n  say a + b\nend\ndo plus 2 3')
 check("two inputs", rt.said == ["5"])
 
 rt, _ = run('set x to 1\nteach trick x\n  say x\nend\ndo trick 99\nsay x')

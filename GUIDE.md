@@ -191,6 +191,96 @@ The IDE is native PyQt6 in `sparky/ide/`. Nice entry points:
 Errors are always friendly (`Oops! Line 2 ... Did you mean "move"?`),
 including "did you mean" suggestions from `difflib`.
 
+## Part 7 — Lists, counting loops and commands that answer (Sparky 1.1)
+
+```
+set pets to ["cat", "dog"]
+add "fish" to pets
+remove "cat" from pets
+say item 1 of pets            # lists count from 1
+set item 2 of pets to "cow"
+
+for each pet in pets
+  say "I love my " + pet
+end
+
+for i from 1 to 10            # also: for i from 10 to 1 by -2
+  say i
+end
+
+teach double n
+  give back n * 2             # "return" works too
+end
+say double(21)
+```
+
+Commands you teach can now **give back** an answer and be used inside
+any expression with round brackets. New variables made inside a command
+stay inside it; program-wide variables (like a score) are shared.
+
+Built-in functions: `length upper lower trim text number sqrt power
+floor ceil sin cos tan min max sum join split contains pick reverse
+sort xpos ypos direction` — for example `join(pets, ", ")`.
+
+> Small change from 1.0: `add`, `remove`, `for`, `each`, `in`, `from`,
+> `item`, `of`, `give` and `nothing` are now Sparky words, so they can't be
+> variable or command names.
+
+## Part 8 — A real IDE
+
+- **Tabs** for every open file, a **file explorer** (📁 in the left bar,
+  or drag a folder onto the window), and your open files come back next
+  time.
+- **Command palette** — `Ctrl/Cmd+Shift+P` (or F1) lists every command.
+  **Go to file** — `Ctrl/Cmd+P`.
+- **Find / replace** — `Ctrl/Cmd+F`, `Ctrl/Cmd+Alt+F`. **Go to line** —
+  `Ctrl/Cmd+G`. **Comment lines** — `Ctrl/Cmd+/`. Tab / Shift+Tab indent a
+  selection. Zoom with `Ctrl/Cmd +`, `-`, `0`.
+
+## Part 9 — Python and other languages
+
+Open or create `.py`, `.js`, `.html`, `.css`, `.json`, `.md` files and
+more. Sparky colors them and **runs** them:
+
+- **Python** — with the Python on your computer (pick one in
+  Settings → Languages; the Find button shows which ones have turtle
+  graphics). `input()` works: type your answer in the console box.
+  If there's an error, Sparky jumps to the line.
+- **JavaScript** — with Node.js. **HTML** — opens in your browser.
+- **Anything else** — add a run command in Settings → Languages, like
+  `.rb = ruby {file}`.
+
+**Show as Python** (More ▾) turns any Sparky program into real Python.
+Drawings use Python's own `turtle` module set up like Sparky's stage.
+
+## Part 10 — VS Code themes and snippets
+
+The 🧩 panel searches **Open VSX** (the open marketplace VS Code-style
+editors share) for **color themes** and **snippets**. Install one and it
+works right away — themes recolor the whole IDE, snippets show up in
+autocomplete. You can also install a `.vsix` file. Sparky uses only the
+themes and snippets inside an extension and never runs extension code, so
+extensions that add other features (debuggers, language servers) won't do
+anything here.
+
+## Part 11 — Your own AI helper
+
+The ✨ panel is an AI helper that can see the file you have open. Set it
+up with ⚙ (Settings → AI):
+
+| Provider | What you need |
+|---|---|
+| Anthropic (Claude) | An API key from console.anthropic.com. Default model `claude-opus-5-5`. |
+| OpenAI, Google Gemini, Groq, OpenRouter | An API key from that provider, then **Load models** |
+| Ollama or LM Studio | Runs on your own computer — no key, nothing leaves the computer |
+| Custom | Any OpenAI-compatible address |
+
+- **Tutor mode** (on by default) makes it give hints and explanations
+  before full answers. **Instructions** lets you tell it how to talk to
+  you. **Insert code** puts its last code block into your editor.
+- Your key is saved only on your computer, in Sparky's settings — it is
+  never sent anywhere except to the provider you chose.
+
 ## Full command reference
 
 | Command | What it does |
@@ -213,6 +303,10 @@ including "did you mean" suggestions from `difflib`.
 | `write "text"` / `beep` | stage text / sound |
 | `play "pop"` | sound effects: pop ding boing laser drum tada jump |
 | `play note 4 for 0.5` | notes 1–14 (two do-re-mi octaves) — make songs! |
+| `set l to [1, 2]` / `add x to l` / `remove x from l` | lists |
+| `item 1 of l` / `set item 1 of l to x` | list items (count from 1) |
+| `for each x in l ... end` / `for i from 1 to 10 ... end` | loops over lists / counting |
+| `teach f n ... give back n * 2 ... end`, `f(21)` | commands that answer |
 | `speed 1..10` | how fast |
 | `random A to B`, `round x`, `abs x` | numbers |
 | `+ - * / mod`, `= > < >= <=`, `is`, `is not`, `and or not` | math & logic |

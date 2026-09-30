@@ -35,6 +35,11 @@ def safe_name(name):
 
 
 def make_app(main_window):
+    if main_window.editor.language.id != "sparky":
+        QMessageBox.information(main_window, "Make an App",
+                                "Make an App works with Sparky programs. Switch to a "
+                                "Sparky tab first.")
+        return
     source = main_window.editor.toPlainText()
     if not source.strip():
         QMessageBox.information(main_window, "Nothing to package",

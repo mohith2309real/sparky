@@ -70,6 +70,7 @@ class RunnerThread(QThread):
         self.model = model
         self.start_speed = start_speed
         self.runtime = GuiRuntime(self, model)
+        self.setStackSize(64 * 1024 * 1024)  # room for deep recursion
         self.interpreter = None
         self._stop = False
 

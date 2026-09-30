@@ -40,6 +40,15 @@ build_arch() {
     "$BUILD_PY" -m pip download --quiet --only-binary=:all: "${plat[@]}" \
       --python-version "$v" --implementation cp --no-deps -d "$wheels" PyQt6-sip
   done
+  echo "== $arch: fetching the AI helper's Claude SDK"
+  # its compiled parts differ per Python; pip resolves markers for the Python
+  # running the build, so name backports older Pythons need (exceptiongroup)
+  for v in 3.10 3.11 3.12 3.13 3.14; do
+    "$BUILD_PY" -m pip download --quiet --only-binary=:all: "${plat[@]}" \
+      --python-version "$v" --implementation cp -d "$wheels" anthropic certifi \
+      exceptiongroup \
+      || echo "   (no AI helper wheels for Python $v on $arch)"
+  done
 
   echo "== $arch: assembling"
   rm -rf "$pkg"
@@ -47,7 +56,6 @@ build_arch() {
   for w in "$wheels"/*.whl; do
     "$BUILD_PY" -m zipfile -e "$w" "$pkg/app/"
   done
-  rm -rf "$pkg/app/"*.dist-info
   cp -R sparky assets examples extensions GUIDE.md "$pkg/app/"
   find "$pkg/app/sparky" -name "__pycache__" -type d -prune -exec rm -rf {} +
   echo "Installed copy of Sparky (user files live in ~/Sparky)." > "$pkg/app/sparky-installed.txt"

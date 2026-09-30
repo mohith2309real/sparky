@@ -13,6 +13,8 @@ echo "Building standalone Sparky.app (this takes a minute)..."
 .venv/bin/pyinstaller --noconfirm --clean --windowed \
   --name Sparky \
   --paths . \
+  --hidden-import anthropic \
+  --collect-data certifi \
   --icon assets/sparky.icns \
   --osx-bundle-identifier io.github.mohith2309.sparky \
   --add-data "assets:assets" \

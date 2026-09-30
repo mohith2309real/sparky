@@ -12,6 +12,13 @@
 #   teach square size ... end
 #   do square 50
 #   move 100 / turn 90 / pen down / goto 0 0 ...
+#
+# Sparky 1.1 adds lists, functions that give back results, and for loops:
+#   set pets to ["cat", "dog"]         add "fish" to pets
+#   say item 1 of pets                 remove "cat" from pets
+#   for each pet in pets ... end       for i from 1 to 10 ... end
+#   teach double n / give back n * 2 / end    say double(21)
+#   say length(pets)   upper(name)   sqrt(16)   pick(pets) ...
 
 from . import ast_nodes as A
 from .errors import SparkyError, did_you_mean
@@ -22,14 +29,15 @@ STATEMENT_WORDS = [
     "say", "ask", "set", "change", "repeat", "forever", "if", "wait", "stop",
     "teach", "do", "move", "back", "turn", "point", "goto", "home", "pen",
     "clear", "hide", "show", "stamp", "background", "speed", "write", "beep",
-    "size", "play", "end", "else",
+    "size", "play", "for", "add", "remove", "give", "return", "end", "else",
 ]
 
 # words that may appear inside statements/expressions
 HELPER_WORDS = [
     "to", "into", "by", "times", "until", "then", "with", "and", "or", "not",
     "is", "true", "false", "left", "right", "up", "down", "color", "loop",
-    "program", "seconds", "second", "random", "round", "abs", "note", "for",
+    "program", "seconds", "second", "random", "round", "abs", "note",
+    "each", "in", "from", "item", "of", "nothing",
 ]
 
 ALL_WORDS = STATEMENT_WORDS + HELPER_WORDS
@@ -131,6 +139,12 @@ class Parser:
 
         word = tok.value
         method = getattr(self, f"stmt_{word}", None)
+        after = self.tokens[self.pos + 1]
+        if method is None and after.kind == OP and after.value == "(" and after.glued:
+            # a bare function call on its own line, like: greet("Sam")
+            expr = self.parse_expression()
+            self.expect_newline()
+            return A.ExprStatement(expr, tok.line)
         if method is None:
             if word in HELPER_WORDS:
                 raise SparkyError(f'"{word}" can\'t start a line by itself.', tok.line)
@@ -141,7 +155,7 @@ class Parser:
     def stmt_end(self):
         tok = self.peek()
         raise SparkyError('This "end" has nothing to close. Every "end" needs a '
-                          "repeat, forever, if, or teach above it.", tok.line)
+                          "repeat, forever, for, if, or teach above it.", tok.line)
 
     def stmt_else(self):
         tok = self.peek()
@@ -163,6 +177,14 @@ class Parser:
 
     def stmt_set(self):
         tok = self.next()
+        if self.accept_word("item"):
+            index = self.parse_factor()
+            self.expect_word("of", "like: set item 1 of pets to \"cat\"")
+            name = self.expect_name("a list")
+            self.expect_word("to", "like: set item 1 of pets to \"cat\"")
+            value = self.parse_expression()
+            self.expect_newline()
+            return A.SetItem(name, index, value, tok.line)
         name = self.expect_name("a variable")
         self.expect_word("to", "like: set score to 0")
         value = self.parse_expression()
@@ -254,6 +276,60 @@ class Parser:
         self.expect_word("end", "to close the teach")
         self.expect_newline()
         return A.Teach(name, params, body, tok.line)
+
+    def stmt_for(self):
+        tok = self.next()
+        if self.accept_word("each"):
+            name = self.expect_name("each item")
+            self.expect_word("in", "like: for each pet in pets")
+            iterable = self.parse_expression()
+            self.expect_newline()
+            body = self.parse_block("for each", tok.line)
+            self.expect_word("end", "to close the for")
+            self.expect_newline()
+            return A.ForEach(name, iterable, body, tok.line)
+        name = self.expect_name("the counter")
+        self.expect_word("from", "like: for i from 1 to 10")
+        start = self.parse_expression()
+        self.expect_word("to", "like: for i from 1 to 10")
+        stop = self.parse_expression()
+        step = None
+        if self.accept_word("by"):
+            step = self.parse_expression()
+        self.expect_newline()
+        body = self.parse_block("for", tok.line)
+        self.expect_word("end", "to close the for")
+        self.expect_newline()
+        return A.ForRange(name, start, stop, step, body, tok.line)
+
+    def stmt_add(self):
+        tok = self.next()
+        value = self.parse_expression()
+        self.expect_word("to", 'like: add "fish" to pets')
+        name = self.expect_name("a list or variable")
+        self.expect_newline()
+        return A.AddTo(value, name, tok.line)
+
+    def stmt_remove(self):
+        tok = self.next()
+        value = self.parse_expression()
+        self.expect_word("from", 'like: remove "cat" from pets')
+        name = self.expect_name("a list")
+        self.expect_newline()
+        return A.RemoveFrom(value, name, tok.line)
+
+    def stmt_give(self):
+        tok = self.next()
+        self.expect_word("back", "like: give back answer")
+        value = self.parse_expression()
+        self.expect_newline()
+        return A.Return(value, tok.line)
+
+    def stmt_return(self):
+        tok = self.next()
+        value = self.parse_expression()
+        self.expect_newline()
+        return A.Return(value, tok.line)
 
     def stmt_do(self):
         tok = self.next()
@@ -463,6 +539,12 @@ class Parser:
         if self.at_word("round", "abs"):
             self.next()
             return A.UnOp(tok.value, self.parse_factor(), tok.line)
+        if self.at_word("item"):
+            self.next()
+            index = self.parse_factor()
+            self.expect_word("of", "like: item 1 of pets")
+            target = self.parse_factor()
+            return A.Index(target, index, tok.line)
         if self.at_word("random"):
             self.next()
             low = self.parse_factor()
@@ -477,6 +559,18 @@ class Parser:
             return A.Num(tok.value, tok.line)
         if tok.kind == STRING:
             return A.Str(tok.value, tok.line)
+        if tok.kind == OP and tok.value == "[":
+            items = []
+            if not self.at_op("]"):
+                items.append(self.parse_expression())
+                while self.at_op(","):
+                    self.next()
+                    items.append(self.parse_expression())
+            closer = self.next()
+            if closer.kind != OP or closer.value != "]":
+                raise SparkyError("This list starts with [ but never closes. "
+                                  "Put commas between items and end with ].", tok.line)
+            return A.ListLit(items, tok.line)
         if tok.kind == OP and tok.value == "(":
             expr = self.parse_expression()
             closer = self.next()
@@ -488,6 +582,26 @@ class Parser:
                 return A.Bool(True, tok.line)
             if tok.value == "false":
                 return A.Bool(False, tok.line)
+            if tok.value == "nothing":
+                return A.Nothing(tok.line)
+            after = self.peek()
+            if after.kind == OP and after.value == "(" and after.glued:
+                if tok.value in RESERVED:
+                    raise SparkyError(f'"{tok.value}" is a Sparky word, not a '
+                                      "function.", tok.line)
+                self.next()
+                args = []
+                if not self.at_op(")"):
+                    args.append(self.parse_expression())
+                    while self.at_op(","):
+                        self.next()
+                        args.append(self.parse_expression())
+                closer = self.next()
+                if closer.kind != OP or closer.value != ")":
+                    raise SparkyError(f'The call to "{tok.value}" starts with ( but '
+                                      "never closes. Put commas between inputs "
+                                      "and end with ).", tok.line)
+                return A.Call(tok.value, args, tok.line)
             if tok.value in RESERVED:
                 raise SparkyError(f'I wasn\'t expecting "{tok.value}" here.', tok.line)
             return A.Var(tok.value, tok.line)

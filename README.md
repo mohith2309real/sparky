@@ -102,6 +102,19 @@ exported app running in the player:
   is remembered between sessions, and a welcome screen greets the
   first launch.
 
+## New in 1.1
+
+- **Language:** lists, `for each` / `for i from 1 to 10` loops, commands that
+  `give back` answers (recursion works), and 25 built-in functions.
+- **Python bridge:** Show as Python turns any Sparky program into real Python.
+- **A real IDE:** tabs, file explorer, find/replace, command palette, quick
+  open, go to line, comment toggling — and it runs Python, JavaScript, HTML
+  and anything you add a command for.
+- **VS Code themes and snippets** from Open VSX (Sparky never runs extension code).
+- **Bring-your-own AI helper:** Claude (official Anthropic SDK), OpenAI, Gemini,
+  Groq, OpenRouter, or local Ollama / LM Studio, with tutor mode and your own
+  instructions.
+
 ## The Sparky language in 60 seconds
 
 ```

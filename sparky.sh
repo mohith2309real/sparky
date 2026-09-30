@@ -8,9 +8,9 @@ if [ ! -x ".venv/bin/python" ]; then
   python3 -m venv .venv || exit 1
 fi
 
-if ! .venv/bin/python -c "import PyQt6" 2>/dev/null; then
+if ! .venv/bin/python -c "import PyQt6, anthropic" 2>/dev/null; then
   echo "Installing the IDE toolkit (PyQt6)..."
-  .venv/bin/pip install --quiet PyQt6 || exit 1
+  .venv/bin/pip install --quiet PyQt6 anthropic || exit 1
 fi
 
 exec .venv/bin/python -m sparky

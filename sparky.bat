@@ -8,10 +8,10 @@ if not exist ".venv\Scripts\python.exe" (
   py -3 -m venv .venv || python -m venv .venv || goto :fail
 )
 
-.venv\Scripts\python -c "import PyQt6" 2>nul
+.venv\Scripts\python -c "import PyQt6, anthropic" 2>nul
 if errorlevel 1 (
   echo Installing the IDE toolkit ^(PyQt6^)...
-  .venv\Scripts\pip install --quiet PyQt6 || goto :fail
+  .venv\Scripts\pip install --quiet PyQt6 anthropic || goto :fail
 )
 
 .venv\Scripts\python -m sparky

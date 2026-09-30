@@ -49,6 +49,8 @@ CATEGORIES = [
          "Do something again and again."),
         ("repeat until", 'repeat until score = 10\n  change score by 1\nend',
          "Keep going until something becomes true."),
+        ("count with for", "for i from 1 to 10\n  say i\nend",
+         "Count from one number to another."),
         ("forever", "forever\n  turn 5\nend",
          "Loop until you press Stop (or use stop loop)."),
         ("if", 'if score > 5 then\n  say "wow!"\nend',
@@ -59,6 +61,14 @@ CATEGORIES = [
         ("stop loop", "stop loop", "Jump out of the loop you're in."),
         ("stop program", "stop program", "End the whole program."),
         ("speed", "speed 8", "How fast Sparky moves: 1 slow, 10 instant."),
+    ]),
+    ("LISTS", "accent3", [
+        ("make a list", 'set pets to ["cat", "dog"]', "A list holds many things in order."),
+        ("add to list", 'add "fish" to pets', "Put something at the end of a list."),
+        ("remove from list", 'remove "cat" from pets', "Take something out of a list."),
+        ("item of list", "say item 1 of pets", "Items count from 1."),
+        ("for each", "for each pet in pets\n  say pet\nend", "Do something with every item."),
+        ("length", "say length(pets)", "How many items (or letters)."),
     ]),
     ("VARIABLES", "accent2", [
         ("set", "set score to 0", "Make a variable (a box that holds a value)."),
@@ -73,6 +83,8 @@ CATEGORIES = [
          '    move length\n    turn 90\n  end\nend',
          "New commands can take inputs, like a square's side length."),
         ("do", "do dance", "Use a command you taught."),
+        ("teach with answer", "teach double n\n  give back n * 2\nend\n\nsay double(21)",
+         "A command that gives back an answer you can use."),
     ]),
 ]
 

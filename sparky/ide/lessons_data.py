@@ -230,6 +230,90 @@ end
 ''',
     },
     {
+        "title": "11. Lists",
+        "emoji": "📋",
+        "html": """
+<h2>📋 Lists: lots of things in one box</h2>
+<p>A <b>list</b> keeps many things in order, inside square brackets.
+<b>add</b> puts something at the end, <b>remove</b> takes it out, and
+<b>item 1 of</b> gets the first one (lists count from 1).</p>
+<p><b>for each</b> runs the same code for every item. <b>length()</b>
+tells you how many there are.</p>
+""",
+        "code": '''set pets to ["cat", "dog"]
+add "fish" to pets
+say "I have " + length(pets) + " pets"
+
+for each pet in pets
+  say "I love my " + pet
+end
+
+remove "dog" from pets
+say "First pet: " + item 1 of pets
+say pets
+''',
+    },
+    {
+        "title": "12. Commands that answer",
+        "emoji": "🎁",
+        "html": """
+<h2>🎁 Commands that answer</h2>
+<p>A command you <b>teach</b> can <b>give back</b> an answer. Then you
+can use it anywhere a number or text goes, with round brackets:
+<b>double(21)</b>.</p>
+<p>Commands can even use <i>themselves</i>. That's called
+<b>recursion</b> — the Fibonacci numbers below are made that way.</p>
+<p>Sparky also has built-in answering commands like <b>upper()</b>,
+<b>sqrt()</b>, <b>max()</b>, <b>join()</b> and <b>pick()</b>.</p>
+""",
+        "code": '''teach double n
+  give back n * 2
+end
+
+say double(21)
+
+teach fib n
+  if n < 2 then
+    give back n
+  end
+  give back fib(n - 1) + fib(n - 2)
+end
+
+for i from 1 to 10
+  say "fib " + i + " = " + fib(i)
+end
+
+say upper("done!") + " " + pick(["🎉", "⚡", "🚀"])
+''',
+    },
+    {
+        "title": "13. Hello, Python!",
+        "emoji": "🐍",
+        "html": """
+<h2>🐍 Hello, Python!</h2>
+<p>Sparky can turn your program into <b>Python</b>, a language real
+programmers use every day. Press <b>More ▾ → Show as Python</b> and a
+new tab opens with the same program written in Python.</p>
+<p>Press <b>Run</b> on that tab and Python runs it. Compare the two:
+<b>say</b> becomes <b>print</b>, <b>repeat 3 times</b> becomes
+<b>for _ in range(3):</b>, and <b>teach</b> becomes <b>def</b>.</p>
+<p>You can also open or create <b>.py</b> files and write Python
+yourself — Sparky colors it, runs it and shows the output.</p>
+""",
+        "code": '''# Press More ▾ → Show as Python, then Run the new tab!
+set total to 0
+for i from 1 to 10
+  change total by i
+end
+say "1 + 2 + ... + 10 = " + total
+
+teach shout words
+  give back upper(words) + "!"
+end
+say shout("python is fun")
+''',
+    },
+    {
         "title": "🏆 Challenges",
         "emoji": "🏆",
         "html": """
@@ -319,6 +403,40 @@ end
 do square 50</pre>
 <p>Inputs are local to the command. Commands can even <b>do</b>
 themselves — that's recursion (see the Fractal Tree example).</p>
+
+<h2>Lists</h2>
+<table cellpadding="4">
+<tr><td><b>set pets to ["cat", "dog"]</b></td><td>make a list</td></tr>
+<tr><td><b>add "fish" to pets</b></td><td>put at the end (also adds to numbers and text)</td></tr>
+<tr><td><b>remove "cat" from pets</b></td><td>take the first match out</td></tr>
+<tr><td><b>item 1 of pets</b></td><td>get an item — lists count from 1</td></tr>
+<tr><td><b>set item 2 of pets to "cow"</b></td><td>change an item</td></tr>
+<tr><td><b>for each pet in pets ... end</b></td><td>every item (or every letter of text)</td></tr>
+</table>
+
+<h2>Counting loops</h2>
+<p><b>for i from 1 to 10 ... end</b> — counts up; <b>for i from 10 to 1 by -2</b>
+counts down in steps.</p>
+
+<h2>Commands that answer</h2>
+<pre>teach double n
+  give back n * 2
+end
+say double(21)</pre>
+<p><b>give back</b> (or <b>return</b>) ends the command with an answer. Call
+it with round brackets: <b>double(21)</b>. New variables made inside a
+command stay inside it; program-wide ones (like a score) are shared.</p>
+
+<h2>Built-in functions</h2>
+<p><b>length upper lower trim text number sqrt power floor ceil sin cos tan
+min max sum join split contains pick reverse sort xpos ypos direction</b> —
+for example <b>length(pets)</b>, <b>join(pets, ", ")</b>, <b>sqrt(81)</b>.</p>
+
+<h2>Other languages</h2>
+<p>Open or create <b>.py</b>, <b>.js</b>, <b>.html</b> and more. Sparky colors
+them and runs Python (with your computer's Python), JavaScript (with Node.js)
+and web pages (in your browser). <b>More ▾ → Show as Python</b> turns any
+Sparky program into Python.</p>
 
 <h2>Moving (the stage is like Scratch)</h2>
 <p>(0,0) is the center. x grows right, y grows <b>up</b>.

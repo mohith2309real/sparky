@@ -53,15 +53,8 @@ class LearnDialog(QDialog):
         row = self.list.currentRow()
         if not (0 <= row < len(LESSONS)):
             return
-        if not self.main_window.confirm_discard():
-            return
-        editor = self.main_window.editor
-        editor.setPlainText(LESSONS[row]["code"])
-        editor.document().setModified(False)
-        self.main_window.file_path = None
-        self.main_window.reset_run_view()
-        self.main_window.update_file_label()
+        title = LESSONS[row]["title"].split(". ", 1)[-1]
+        self.main_window.open_text(LESSONS[row]["code"], title)
         self.main_window.status.showMessage(
-            "Lesson loaded — press Run, then make it your own!")
+            "Lesson opened in a new tab — press Run, then make it your own!")
         self.main_window.raise_()
-        editor.setFocus()

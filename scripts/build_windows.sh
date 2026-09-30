@@ -19,6 +19,9 @@ echo "Fetching Windows PyQt6 wheels..."
 # Qt 6.9: newer Qt needs Windows' own ICU (icuuc.dll), 6.9 carries what it needs
 "$BUILD_PY" -m pip download --quiet --only-binary=:all: --platform win_amd64 \
   --python-version 3.12 --implementation cp -d "$OUT/wheels" "PyQt6>=6.9,<6.10"
+echo "Fetching the AI helper's Claude SDK..."
+"$BUILD_PY" -m pip download --quiet --only-binary=:all: --platform win_amd64 \
+  --python-version 3.12 --implementation cp -d "$OUT/wheels" anthropic certifi
 
 echo "Staging Sparky..."
 cp -R sparky assets examples extensions GUIDE.md "$OUT/stage/"

@@ -6,9 +6,44 @@
 
 import sys
 
+from . import __version__
+
 
 def main():
     args = sys.argv[1:]
+    if args and args[0] == "selfcheck":
+        import platform
+        report = [f"Sparky {__version__}", f"Python {platform.python_version()}"]
+        from .lang import run_console
+        run_console('say "language ok"')
+        try:
+            from PyQt6.QtCore import QT_VERSION_STR
+            report.append(f"Qt {QT_VERSION_STR}")
+        except ImportError as err:
+            report.append(f"Qt missing: {err}")
+        try:
+            import anthropic
+            report.append(f"anthropic {anthropic.__version__}")
+        except ImportError as err:
+            report.append(f"anthropic missing: {err}")
+        try:
+            from .ide.vscode import ssl_context
+            ssl_context()
+            report.append("https ok")
+        except Exception as err:
+            report.append(f"https problem: {err}")
+        import os
+        url = os.environ.get("SPARKY_SELFCHECK_AI_URL")
+        if url:   # a stand-in server proves the Claude connection works end to end
+            from .ide.ai import stream_anthropic
+            got = []
+            stream_anthropic({"name": "check", "kind": "anthropic", "base_url": url,
+                              "key": "check", "model": "claude-opus-5-5"},
+                             "check", [{"role": "user", "content": "hi"}],
+                             got.append, lambda: False)
+            report.append(f"claude stream: {''.join(got)!r}")
+        print(" | ".join(report))
+        return
     if args and args[0] == "play":
         if len(args) < 2:
             print("Usage: python3 -m sparky play <file.spark>")

@@ -227,4 +227,89 @@ def build_qss(p):
         font-family: {code};
         font-size: 13px;
     }}
+    QListWidget, QTreeView {{
+        background: {p['panel']};
+        color: {p['text']};
+        border: 1px solid {p['border']};
+        border-radius: 8px;
+        font-family: {body};
+        font-size: 13px;
+        padding: 4px;
+    }}
+    QListWidget::item, QTreeView::item {{ padding: 5px 6px; border-radius: 6px; }}
+    QListWidget::item:selected, QTreeView::item:selected {{
+        background: {p['sel']}; color: {p['text']};
+    }}
+    QListWidget::item:hover, QTreeView::item:hover {{ background: {p['panel2']}; }}
+    #ActivityBar {{
+        background: {p['panel2']};
+        border-right: 1px solid {p['border']};
+    }}
+    QToolButton#ActivityButton {{
+        background: transparent;
+        border: none;
+        border-radius: 10px;
+        font-size: 19px;
+        padding: 8px;
+        min-width: 30px;
+    }}
+    QToolButton#ActivityButton:hover {{ background: {p['panel']}; }}
+    QToolButton#ActivityButton:checked {{
+        background: {p['bg']};
+        border-left: 3px solid {p['accent']};
+    }}
+    QTabWidget#EditorTabs::pane {{ border: none; }}
+    QTabBar {{ background: {p['panel']}; }}
+    QTabBar::tab {{
+        background: {p['panel']};
+        color: {p['muted']};
+        padding: 8px 14px;
+        border: none;
+        border-right: 1px solid {p['border']};
+        font-family: {heading};
+        font-size: 12px;
+    }}
+    QTabBar::tab:selected {{
+        background: {p['editor_bg']};
+        color: {p['text']};
+        border-top: 2px solid {p['accent']};
+    }}
+    QTabBar::tab:hover {{ color: {p['text']}; }}
+    #FindBar {{
+        background: {p['panel']};
+        border-bottom: 1px solid {p['border']};
+    }}
+    QLineEdit, QComboBox, QSpinBox {{
+        background: {p['editor_bg']};
+        color: {p['text']};
+        border: 1px solid {p['border']};
+        border-radius: 7px;
+        padding: 5px 8px;
+        selection-background-color: {p['sel']};
+    }}
+    QLineEdit:focus, QComboBox:focus {{ border-color: {p['accent2']}; }}
+    QPlainTextEdit#AskBox {{
+        background: {p['editor_bg']};
+        color: {p['text']};
+        border: 1px solid {p['border']};
+        border-radius: 9px;
+        padding: 6px;
+        font-family: {body};
+        font-size: 13px;
+    }}
+    QTextBrowser {{
+        background: {p['editor_bg']};
+        color: {p['text']};
+        border: 1px solid {p['border']};
+        border-radius: 9px;
+        padding: 6px;
+        font-family: {body};
+        font-size: 13px;
+    }}
+    QDialog#Palette {{
+        background: {p['bg']};
+        border: 1px solid {p['border']};
+        border-radius: 12px;
+    }}
+    QTabWidget::pane {{ border: 1px solid {p['border']}; border-radius: 8px; }}
     """
