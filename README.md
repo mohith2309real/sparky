@@ -10,7 +10,7 @@ Built with Python + PyQt6 — real native widgets, **no Chromium, no
 Electron, no browser engine anywhere**. Runs on macOS, Windows,
 and Linux.
 
-Created by **Mohith** — [mohith2309.github.io](https://mohith2309.github.io)
+Created by **Mohith** — [mohith2309.web.app](https://mohith2309.web.app)
 
 ## Install it (easiest)
 
@@ -102,7 +102,7 @@ exported app running in the player:
   is remembered between sessions, and a welcome screen greets the
   first launch.
 
-## New in 1.1
+## New in 2.0
 
 - **Language:** lists, `for each` / `for i from 1 to 10` loops, commands that
   `give back` answers (recursion works), and 25 built-in functions.

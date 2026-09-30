@@ -33,7 +33,7 @@ cp assets/sparky.ico "$OUT/sparky.ico"
 cat > "$OUT/installer.cfg" <<CFG
 [Application]
 name=Sparky
-version=1.0.0
+version=2.0.0
 publisher=Mohith
 entry_point=sparky.__main__:main
 icon=sparky.ico

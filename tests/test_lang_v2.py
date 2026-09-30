@@ -1,5 +1,5 @@
-# Sparky 1.1 tests: lists, for loops, functions that give back results,
-# built-in functions. Run with: python3 tests/test_lang_v11.py
+# Sparky 2.0 tests: lists, for loops, functions that give back results,
+# built-in functions. Run with: python3 tests/test_lang_v2.py
 
 import sys
 from pathlib import Path
@@ -155,4 +155,4 @@ check_error("endless recursion is friendly",
 check_error("list + number explains add", 'say [1] + 2', "add ITEM to LIST")
 check_error("unclosed list", 'set l to [1, 2', "never closes")
 
-print(f"\nAll {passed} Sparky 1.1 checks passed!")
+print(f"\nAll {passed} Sparky 2.0 checks passed!")

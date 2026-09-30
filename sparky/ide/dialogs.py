@@ -12,7 +12,7 @@ from .. import __version__
 from ..paths import (ASSETS_DIR as ASSETS, EXTENSIONS_DIR,
                      GALLERY_DIR as GALLERY)
 
-SITE_URL = "https://mohith2309.github.io"
+SITE_URL = "https://mohith2309.web.app"
 
 
 def open_site():

@@ -180,7 +180,7 @@ def stream_openai_compatible(cfg, system, messages, on_text, cancelled):
         raise AIError("Pick a model in Settings → AI (the Load models button lists them).")
     body = {"model": cfg["model"], "stream": True,
             "messages": [{"role": "system", "content": system}] + messages}
-    headers = {"Content-Type": "application/json", "User-Agent": "Sparky-IDE/1.1"}
+    headers = {"Content-Type": "application/json", "User-Agent": "Sparky-IDE/2.0"}
     if cfg["key"]:
         headers["Authorization"] = f"Bearer {cfg['key']}"
     request = urllib.request.Request(cfg["base_url"].rstrip("/") + "/chat/completions",
@@ -231,7 +231,7 @@ def list_models(cfg):
             raise AIError("I couldn't reach Claude.")
         except anthropic.APIStatusError as err:
             raise AIError(f"Claude had a problem ({err.status_code}).")
-    headers = {"User-Agent": "Sparky-IDE/1.1"}
+    headers = {"User-Agent": "Sparky-IDE/2.0"}
     if cfg["key"]:
         headers["Authorization"] = f"Bearer {cfg['key']}"
     request = urllib.request.Request(cfg["base_url"].rstrip("/") + "/models", headers=headers)

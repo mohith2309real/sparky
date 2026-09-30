@@ -1,7 +1,7 @@
 #!/bin/zsh
 # Builds the fully self-contained Sparky app: Python, Qt, code, examples,
-# assets — everything inside one Sparky.app. Output: dist/Sparky.app and
-# dist/Sparky-macOS.zip (ready to attach to a GitHub release).
+# assets — everything inside one Sparky.app. Output: dist/Sparky.app,
+# dist/Sparky-macOS.zip and dist/Sparky-Installer.dmg (the Mac download).
 #
 # Needs: .venv with PyQt6 + pyinstaller, and assets/sparky.icns
 # (run scripts/make_app_bundle.sh once first if the icns is missing).

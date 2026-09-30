@@ -35,7 +35,7 @@ cat > Sparky.app/Contents/Info.plist <<'PLIST'
   <key>CFBundleName</key><string>Sparky</string>
   <key>CFBundleDisplayName</key><string>Sparky</string>
   <key>CFBundleIdentifier</key><string>io.github.mohith2309.sparky</string>
-  <key>CFBundleShortVersionString</key><string>1.0.0</string>
+  <key>CFBundleShortVersionString</key><string>2.0.0</string>
   <key>CFBundleExecutable</key><string>sparky</string>
   <key>CFBundleIconFile</key><string>sparky</string>
   <key>CFBundlePackageType</key><string>APPL</string>

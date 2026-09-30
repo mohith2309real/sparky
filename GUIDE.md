@@ -191,7 +191,7 @@ The IDE is native PyQt6 in `sparky/ide/`. Nice entry points:
 Errors are always friendly (`Oops! Line 2 ... Did you mean "move"?`),
 including "did you mean" suggestions from `difflib`.
 
-## Part 7 — Lists, counting loops and commands that answer (Sparky 1.1)
+## Part 7 — Lists, counting loops and commands that answer (Sparky 2.0)
 
 ```
 set pets to ["cat", "dog"]
@@ -313,4 +313,4 @@ up with ⚙ (Settings → AI):
 
 ---
 
-Sparky was created by **Mohith** — [mohith2309.github.io](https://mohith2309.github.io)
+Sparky was created by **Mohith** — [mohith2309.web.app](https://mohith2309.web.app)

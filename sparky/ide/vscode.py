@@ -21,7 +21,7 @@ from ..paths import USER_DIR
 VSCODE_DIR = USER_DIR / "vscode-extensions"
 OPEN_VSX = "https://open-vsx.org/api/-/search"
 MAX_FILE = 5 * 1024 * 1024
-USER_AGENT = "Sparky-IDE/1.1 (+https://sparky-code.web.app)"
+USER_AGENT = "Sparky-IDE/2.0 (+https://sparky-code.web.app)"
 
 
 def ssl_context():

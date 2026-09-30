@@ -235,7 +235,7 @@ class PlaySound(Node):
         self.duration = duration
 
 
-# ---------- Sparky 1.1: lists, functions with results, for loops ----------
+# ---------- Sparky 2.0: lists, functions with results, for loops ----------
 
 class Nothing(Node):
     """The value `nothing` (what a function gives back when it gives nothing)."""

@@ -13,7 +13,7 @@
 #   do square 50
 #   move 100 / turn 90 / pen down / goto 0 0 ...
 #
-# Sparky 1.1 adds lists, functions that give back results, and for loops:
+# Sparky 2.0 adds lists, functions that give back results, and for loops:
 #   set pets to ["cat", "dog"]         add "fish" to pets
 #   say item 1 of pets                 remove "cat" from pets
 #   for each pet in pets ... end       for i from 1 to 10 ... end
