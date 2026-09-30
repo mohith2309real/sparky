@@ -14,21 +14,25 @@ Created by **Mohith** — [mohith2309.github.io](https://mohith2309.github.io)
 
 ## Install it (easiest)
 
-**Mac:** grab `Sparky-macOS.zip` from
-[Releases](https://github.com/mohith2309/sparky/releases), unzip, and
-drag `Sparky.app` to Applications. Everything — Python, Qt, examples —
-is inside the app; nothing else to install.
+Download Sparky from **https://sparky-code.web.app** — every download has
+everything inside (Python, Qt, examples, lessons), nothing else to install.
 
-**First open:** macOS will say it *"can't verify the app is free of
-malware"* — that's because Sparky isn't notarized with a paid Apple
-Developer account, not because anything is wrong. Two ways past it:
+| Computer | Download | Install |
+|---|---|---|
+| Mac (Apple silicon) | `Sparky-Installer.dmg` | Open it, drag Sparky into Applications |
+| Windows 10/11 (64-bit) | `Sparky-Setup.exe` | Run it; no admin needed; adds desktop + Start menu shortcuts |
+| Linux PC (x86_64) | `Sparky-Linux-x86_64.tar.gz` | Unpack, run `./install.sh` (no sudo) or `./sparky` |
+| Raspberry Pi 4/5, ARM64 Linux | `Sparky-Linux-arm64.tar.gz` | Same as Linux PC |
 
-1. Double-click (it gets blocked) → open **System Settings →
-   Privacy & Security**, scroll down, press **Open Anyway** → confirm.
-2. Or in Terminal:
-   `xattr -dr com.apple.quarantine /Applications/Sparky.app`
+Linux needs Python 3.10+, which desktops already have.
 
-Either way it's a one-time thing — after that it opens like any app.
+**First open:** the downloads aren't signed with paid developer
+certificates, so the system asks once.
+- **Mac:** it says it *"can't verify the app is free of malware"*. Open
+  **System Settings → Privacy & Security**, scroll down, press **Open
+  Anyway**. (Or: `xattr -dr com.apple.quarantine /Applications/Sparky.app`)
+- **Windows:** if it says *"Windows protected your PC"*, press **More info →
+  Run anyway**.
 
 Your programs, gallery, and extensions live in a friendly `~/Sparky`
 folder the app creates on first launch.
@@ -134,8 +138,9 @@ heading 0 points up and `turn` goes clockwise.
 - `sparky/ide/` — the PyQt6 IDE (editor, stage, blocks, runner, themes)
 - `examples/` — programs in the IDE's Examples menu
 - `tests/test_lang.py` — run with `python3 tests/test_lang.py`
-- `scripts/build_standalone.sh` — builds the self-contained
-  `dist/Sparky.app` + release zip (PyInstaller)
+- `scripts/build_all.sh` — builds all four downloads into `build/release/`
+  (Mac app via PyInstaller, Windows installer via pynsist + NSIS,
+  Linux packages) — all from a Mac; see the header of each build script
 
 Made by Mohith as a learning project — the whole thing is meant to be
 read, poked at, and extended.

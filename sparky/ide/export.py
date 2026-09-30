@@ -65,11 +65,14 @@ def make_app(main_window):
     program.write_text(source, encoding="utf-8")
 
     launch = player_command_unix().replace("$PROGRAM", f"{name}.spark")
+    prog = f"{name}.spark"
 
     mac = folder / f"Play {name}.command"
     mac.write_text(f"""#!/bin/zsh
 # {name} — made with Sparky ({SITE_URL})
 DIR="$(cd "$(dirname "$0")" && pwd)"
+APP="/Applications/Sparky.app/Contents/MacOS/Sparky"
+[ -x "$APP" ] && exec "$APP" play "$DIR/{prog}"
 {launch}
 """, encoding="utf-8")
 
@@ -77,6 +80,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
     linux.write_text(f"""#!/bin/sh
 # {name} — made with Sparky ({SITE_URL})
 DIR="$(cd "$(dirname "$0")" && pwd)"
+command -v sparky >/dev/null 2>&1 && exec sparky play "$DIR/{prog}"
 {launch}
 """, encoding="utf-8")
 
@@ -87,11 +91,15 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
     windows = folder / f"Play {name}.bat"
     windows.write_text(f"""@echo off
 rem {name} - made with Sparky ({SITE_URL})
-rem If Sparky lives somewhere else on this computer, edit the next line:
-set SPARKY=C:\\sparky
-cd /d "%SPARKY%"
-.venv\\Scripts\\python -m sparky play "%~dp0{name}.spark"
-pause
+rem Uses the Sparky that the Windows installer put on this computer.
+set "SPARKY=%LOCALAPPDATA%\\Programs\\Sparky"
+if not exist "%SPARKY%\\Python\\pythonw.exe" set "SPARKY=%ProgramFiles%\\Sparky"
+if not exist "%SPARKY%\\Python\\pythonw.exe" (
+  echo Sparky isn't installed on this computer yet. Get it from sparky-code.web.app
+  pause
+  exit /b 1
+)
+start "" "%SPARKY%\\Python\\pythonw.exe" -c "import sys; sys.path.insert(0, r'%SPARKY%\\pkgs'); sys.argv=['sparky', 'play', r'%~dp0{prog}']; from sparky.__main__ import main; main()"
 """, encoding="utf-8")
 
     (folder / "README.txt").write_text(f"""{name}
@@ -102,7 +110,6 @@ Made with Sparky — a coding platform for kids.
 HOW TO PLAY
   Mac:      double-click "Play {name}.command"
   Windows:  double-click "Play {name}.bat"
-            (first edit the SPARKY line inside if needed)
   Linux:    run ./play_{name.replace(' ', '_').lower()}.sh
 
 This app runs on the Sparky player, so the computer needs Sparky.

@@ -50,9 +50,11 @@ DARK = {
     "syn_com":   "#767468",
 }
 
-HEADING_FONTS = ["Poppins", "Avenir Next", "Helvetica Neue", "Arial"]
-BODY_FONTS = ["Lora", "Georgia", "Times New Roman"]
-CODE_FONTS = ["SF Mono", "Menlo", "Monaco", "Courier New"]
+HEADING_FONTS = ["Poppins", "Avenir Next", "Helvetica Neue", "Segoe UI", "Ubuntu",
+                 "Cantarell", "Noto Sans", "DejaVu Sans", "Arial"]
+BODY_FONTS = ["Lora", "Georgia", "Noto Serif", "DejaVu Serif", "Times New Roman"]
+CODE_FONTS = ["SF Mono", "Menlo", "Monaco", "Cascadia Mono", "Consolas", "Ubuntu Mono",
+              "DejaVu Sans Mono", "Liberation Mono", "Courier New"]
 
 
 def font_stack(families):
