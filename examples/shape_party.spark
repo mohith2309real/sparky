@@ -1,0 +1,35 @@
+# Shape party: Sparky 3's shapes, fills, pens and backdrops.
+
+backdrop "sunset"
+speed 10
+hide
+pen up
+
+goto -150 60
+fill color "gold"
+pen color "white"
+pen size 3
+star 5 points 55
+
+goto 0 60
+fill color "#6a9bcc"
+polygon 6 sides 50
+
+goto 150 60
+fill color "pink"
+circle 45
+
+no fill
+goto 0 -40
+pen color rainbow
+pen size 6
+for r from 10 to 40 by 10
+  circle r
+end
+for r from 20 to 120 by 20
+  arc 180 radius r
+end
+
+goto -170 -150
+pen color "white"
+write "Shape party!" size 28 bold

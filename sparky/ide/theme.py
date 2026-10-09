@@ -330,4 +330,20 @@ def build_qss(palette, scale=1.0):
         text-align: center; color: transparent;
     }}
     QProgressBar::chunk {{ background: {p['accent']}; border-radius: {px(4)}; }}
+
+    /* ---------- stage tools (Sparky 3) ---------- */
+    #RecLabel {{ color: {p['danger']}; font-size: {px(12)}; font-weight: 700; padding-right: {px(6)}; }}
+    #SpritesTable {{
+        background: {p['surface']}; border: 1px solid {p['line']}; border-radius: {px(10)};
+        gridline-color: transparent; font-size: {px(12)};
+    }}
+    #SpritesTable QHeaderView::section {{
+        background: {p['panel']}; color: {p['muted']}; border: none;
+        border-bottom: 1px solid {p['line']}; padding: {px(3)} {px(6)}; font-size: {px(11)};
+    }}
+    #CostumeButton {{
+        background: {p['surface']}; border: 1px solid {p['line']}; border-radius: {px(12)};
+        font-size: {px(11)}; color: {p['muted']};
+    }}
+    #CostumeButton:hover {{ border-color: {p['accent']}; background: {p['accent_soft']}; color: {p['text']}; }}
     """

@@ -1,8 +1,8 @@
 # Sparky 3.0 — roadmap
 
 Sparky 3.0 is the biggest update yet: a new look for everything, signed releases with
-real over-the-air updates, and 230 new features across the language, the stage, the
-editor, learning, projects and more.
+real over-the-air updates, and 250 new features across the language, the stage, the
+editor, learning, projects, Arduino and more.
 
 Status: `[x]` built and tested · `[ ]` not built yet · *(later: reason)* when something
 can't be done honestly in 3.0.
@@ -89,67 +89,67 @@ the lessons, the installers and the app icon all share the same design system.
 
 ### C. The language (43–82)
 
-- [ ] 43. **`else if`** chains.
-- [ ] 44. **`repeat while`** loops.
-- [ ] 45. **`wait until`** a condition is true.
-- [ ] 46. **Text templates:** `say "Hi {name}!"`.
-- [ ] 47. **`ask number`**, which keeps asking until it gets a number.
-- [ ] 48. **Choice questions:** `ask "Pick one" choices ["cat", "dog"] into pet` shows buttons.
-- [ ] 49. **Records:** `set pet to {name: "Rex", age: 3}`, `say name of pet`, `set age of pet to 4`.
-- [ ] 50. **`mod`** (remainder): `7 mod 3`.
-- [ ] 51. **More maths:** `round(x, 2)`, `pi`, `clamp`, `log`, `angle`, `distance`.
-- [ ] 52. **More text tools:** `replace`, `begins`, `ends`, `find`, `words`, `letters`, `capital`.
-- [ ] 53. **More list tools:** `insert X at N in L`, `index`, `slice`, `range`, `shuffle`, `unique`, `count`.
-- [ ] 54. **Counting from the end:** `item -1 of L` is the last item.
-- [ ] 55. **`timer`** and `reset timer`.
-- [ ] 56. **Date and time:** `hour`, `minute`, `second`, `today`, `weekday`.
-- [ ] 57. **`use "shapes.spark"`** shares commands between files.
-- [ ] 58. **`try … oops … end`** catches problems without stopping the program.
-- [ ] 59. **`say … for 2 seconds`** and **`think "…"`** (a thought bubble).
-- [ ] 60. **Key events:** `when key "space" pressed … end`.
-- [ ] 61. **Click events:** `when clicked` (a sprite) and `when stage clicked`.
-- [ ] 62. **Messages:** `broadcast "go"` and `when message "go"`.
-- [ ] 63. **Sensing:** `key "left" down`, `mouse x`, `mouse y`, `mouse down`.
-- [ ] 64. **`next frame`** for smooth 60-fps games.
-- [ ] 65. **Many sprites:** `make sprite rocket with costume "🚀"`.
-- [ ] 66. **`tell rocket … end`** gives commands to one sprite.
-- [ ] 67. **Costumes:** emoji or shape costumes, `costume "🐱"`, `next costume`.
-- [ ] 68. **Looks:** `ghost 50` (see-through), `layer front` / `layer back`.
-- [ ] 69. **Touching:** `touching rocket`, `touching edge`, `distance to rocket`.
-- [ ] 70. **`bounce if on edge`.**
-- [ ] 71. **`glide to 100 50 in 2 seconds`.**
-- [ ] 72. **Shapes:** `circle 50`, `rectangle 80 by 40`, `polygon 6 sides 40`, `star 5 points 40`, `dot 10`, `arc 90 radius 50`.
-- [ ] 73. **Filled shapes:** `fill color "yellow"` and `no fill`.
-- [ ] 74. **Pen styles:** dashed, dotted, `pen opacity 50`, and a rainbow pen.
-- [ ] 75. **Any color:** `"#ff8800"`, `rgb(255, 136, 0)`, `random color`.
-- [ ] 76. **Text styles:** `write "Hi" size 30 bold`.
-- [ ] 77. **Backdrops:** space, ocean, grass, sunset, night, grid, or an image file.
-- [ ] 78. **Memory between runs:** `save score as "best"` and `load "best" into best`.
-- [ ] 79. **`speak "Hello"`** uses the computer's voice.
-- [ ] 80. **Better errors:** "you wrote / try this" examples for the 30 most common mistakes.
-- [ ] 81. **Names in any alphabet:** variables and commands can use Hindi, Telugu and other scripts.
-- [ ] 82. **Friendly numbers:** `0.1 + 0.2` says `0.3`, and big numbers stay readable.
+- [x] 43. **`else if`** chains.
+- [x] 44. **`repeat while`** loops.
+- [x] 45. **`wait until`** a condition is true.
+- [x] 46. **Text templates:** `say "Hi {name}!"`.
+- [x] 47. **`ask number`**, which keeps asking until it gets a number.
+- [x] 48. **Choice questions:** `ask "Pick one" choices ["cat", "dog"] into pet` shows buttons.
+- [x] 49. **Records:** `set pet to {name: "Rex", age: 3}`, `say name of pet`, `set age of pet to 4`.
+- [x] 50. **`mod`** (remainder): `7 mod 3`.
+- [x] 51. **More maths:** `round(x, 2)`, `pi`, `clamp`, `log`, `angle`, `distance`.
+- [x] 52. **More text tools:** `replace`, `begins`, `ends`, `find`, `words`, `letters`, `capital`.
+- [x] 53. **More list tools:** `insert X at N in L`, `index`, `slice`, `range`, `shuffle`, `unique`, `count`.
+- [x] 54. **Counting from the end:** `item -1 of L` is the last item.
+- [x] 55. **`timer`** and `reset timer`.
+- [x] 56. **Date and time:** `hour`, `minute`, `second`, `today`, `weekday`.
+- [x] 57. **`use "shapes.spark"`** shares commands between files.
+- [x] 58. **`try … oops … end`** catches problems without stopping the program.
+- [x] 59. **`say … for 2 seconds`** and **`think "…"`** (a thought bubble).
+- [x] 60. **Key events:** `when key "space" pressed … end`.
+- [x] 61. **Click events:** `when clicked` (a sprite) and `when stage clicked`.
+- [x] 62. **Messages:** `broadcast "go"` and `when message "go"`.
+- [x] 63. **Sensing:** `key "left" down`, `mouse x`, `mouse y`, `mouse down`.
+- [x] 64. **`next frame`** for smooth 60-fps games.
+- [x] 65. **Many sprites:** `make sprite rocket with costume "🚀"`.
+- [x] 66. **`tell rocket … end`** gives commands to one sprite.
+- [x] 67. **Costumes:** emoji or shape costumes, `costume "🐱"`, `next costume`.
+- [x] 68. **Looks:** `ghost 50` (see-through), `layer front` / `layer back`.
+- [x] 69. **Touching:** `touching rocket`, `touching edge`, `distance to rocket`.
+- [x] 70. **`bounce if on edge`.**
+- [x] 71. **`glide to 100 50 in 2 seconds`.**
+- [x] 72. **Shapes:** `circle 50`, `rectangle 80 by 40`, `polygon 6 sides 40`, `star 5 points 40`, `dot 10`, `arc 90 radius 50`.
+- [x] 73. **Filled shapes:** `fill color "yellow"` and `no fill`.
+- [x] 74. **Pen styles:** dashed, dotted, `pen opacity 50`, and a rainbow pen.
+- [x] 75. **Any color:** `"#ff8800"`, `rgb(255, 136, 0)`, `random color`.
+- [x] 76. **Text styles:** `write "Hi" size 30 bold`.
+- [x] 77. **Backdrops:** space, ocean, grass, sunset, night, grid, or an image file.
+- [x] 78. **Memory between runs:** `save score as "best"` and `load "best" into best`.
+- [x] 79. **`speak "Hello"`** uses the computer's voice.
+- [x] 80. **Better errors:** "you wrote / try this" examples for the 30 most common mistakes.
+- [x] 81. **Names in any alphabet:** variables and commands can use Hindi, Telugu and other scripts.
+- [x] 82. **Friendly numbers:** `0.1 + 0.2` says `0.3`, and big numbers stay readable.
 
 ### D. Stage, sprites and graphics (83–100)
 
-- [ ] 83. **Resizable stage** that stays crisp at any size (the coordinates stay 480 × 360).
-- [ ] 84. **Fullscreen presentation mode.**
-- [ ] 85. **Grid and axes overlay.**
-- [ ] 86. **Live mouse x / y readout.**
-- [ ] 87. **Save the stage as PNG** at 1×, 2× or 4×.
-- [ ] 88. **Save the drawing as SVG** (vector).
-- [ ] 89. **Copy the stage** to the clipboard.
-- [ ] 90. **Record the stage as an animated GIF.**
-- [ ] 91. **Pause and resume** a running program.
-- [ ] 92. **Turbo mode** (draw instantly).
-- [ ] 93. **Faster drawing** with cached layers, for drawings with 100,000+ lines.
-- [ ] 94. **Costume picker** with 40 built-in emoji costumes.
-- [ ] 95. **Mascot moods on the stage:** happy when done, "oops" on errors.
-- [ ] 96. **Confetti** when you finish a challenge.
-- [ ] 97. **Stage color** follows the theme, or pick your own.
-- [ ] 98. **Sprites panel:** every sprite with its x, y, size and costume.
-- [ ] 99. **Click the stage to copy `x y`** for `goto`.
-- [ ] 100. **Direction arrow** on the sprite (toggle).
+- [x] 83. **Resizable stage** that stays crisp at any size (the coordinates stay 480 × 360).
+- [x] 84. **Fullscreen presentation mode.**
+- [x] 85. **Grid and axes overlay.**
+- [x] 86. **Live mouse x / y readout.**
+- [x] 87. **Save the stage as PNG** at 1×, 2× or 4×.
+- [x] 88. **Save the drawing as SVG** (vector).
+- [x] 89. **Copy the stage** to the clipboard.
+- [x] 90. **Record the stage as an animated GIF.**
+- [x] 91. **Pause and resume** a running program.
+- [x] 92. **Turbo mode** (draw instantly).
+- [x] 93. **Faster drawing** with cached layers, for drawings with 100,000+ lines.
+- [x] 94. **Costume picker** with 40 built-in emoji costumes.
+- [x] 95. **Mascot moods on the stage:** happy when done, "oops" on errors.
+- [ ] 96. **Confetti** when you finish a challenge. *(The confetti is built; it fires when challenges get checked, in G.)*
+- [x] 97. **Stage color** follows the theme, or pick your own.
+- [x] 98. **Sprites panel:** every sprite with its x, y, size and costume.
+- [x] 99. **Click the stage to copy `x y`** for `goto`.
+- [x] 100. **Direction arrow** on the sprite (toggle).
 
 ### E. Editor (101–124)
 
@@ -318,6 +318,30 @@ the lessons, the installers and the app icon all share the same design system.
 - [ ] 233. **FAQ page.**
 - [ ] 234. **Teacher page.**
 
+### P. Arduino and electronics (235–252)
+
+Sparky also works like the Arduino IDE: write a sketch, pick the board, press Upload, and
+watch the Serial Monitor — or write it in Sparky words and let Sparky turn it into Arduino code.
+
+- [x] 235. **Arduino sketches** (`.ino`) open with C++ colors, Arduino words, completion and auto-indent.
+- [x] 236. **Board picker:** Uno, Nano, Mega, Leonardo, Pico and every board from your installed cores, remembered per sketch.
+- [x] 237. **Port picker** that finds plugged-in boards by name ("Arduino Uno on usbmodem1101") and refreshes when you plug one in.
+- [x] 238. **Verify** (compile) with progress and the program size ("uses 924 bytes, 2% of the board").
+- [x] 239. **Upload** to the board with one button (F5), with clear messages when the port is busy or missing. *(Upload is the same arduino-cli command Arduino IDE uses; tested up to the board — a real upload needs a board plugged in.)*
+- [x] 240. **Friendly compiler errors:** the line turns red and the message is explained in plain English, with "You wrote / Try this" for common mistakes (missing `;`, not declared, missing `}`...).
+- [x] 241. **Serial Monitor:** baud rate, line endings, a send box, timestamps, autoscroll, copy and clear.
+- [x] 242. **Serial Plotter:** numbers from `Serial.println` become live lines, several at once, with labels.
+- [x] 243. **Library manager:** search Arduino's library index, install, update and remove.
+- [x] 244. **Boards manager:** install board packages (Arduino AVR, RP2040, ESP32, ESP8266...). *(Listing works; installing was not run here, so the packages on this Mac stay as they are.)*
+- [x] 245. **Examples:** Sparky's own kid examples (Blink, traffic light, button, fade, buzzer song, servo, distance sensor) plus the examples of every installed library.
+- [x] 246. **Zero setup:** Sparky uses Arduino IDE's tools when they're installed, or downloads `arduino-cli` itself and checks it against Arduino's published checksums.
+- [x] 247. **Shares** boards, libraries and the sketchbook (Documents/Arduino) with Arduino IDE 2.
+- [x] 248. **Sketch folders handled for you** (Arduino needs the folder and the sketch to have the same name).
+- [x] 249. **Sparky for Arduino:** write `pin 13 on`, `wait 1`, `forever` in Sparky words, then Show as Arduino or Upload straight to the board.
+- [x] 250. **Arduino blocks** in the Blocks palette: pins, LEDs, buttons, servo, buzzer, sensors, serial.
+- [x] 251. **Pin maps** for Uno, Nano and Pico, so you know which hole is pin 13.
+- [x] 252. **C and C++ programs** (`.c`, `.cpp`) run on the computer with its compiler, like Python does.
+
 ---
 
 ## What can't be done for free
@@ -336,7 +360,7 @@ the lessons, the installers and the app icon all share the same design system.
 | Build | What's in it |
 |---|---|
 | 3.0.0-alpha.1 | A (updates and signing), most of B (new look), N |
-| 3.0.0-alpha.2 | C (language) and D (stage and sprites) |
+| 3.0.0-alpha.2 | C (language), D (stage and sprites) and P (Arduino) |
 | 3.0.0-alpha.3 | E (editor) and F (run and debug) |
 | 3.0.0-alpha.4 | G (learn) and H (projects) |
 | 3.0.0-alpha.5 | I, J, K, L, M |

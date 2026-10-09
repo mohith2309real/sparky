@@ -150,7 +150,8 @@ def main():
             print(f"Couldn't open {args[1]}: {err}")
             sys.exit(1)
         try:
-            run_console(source)
+            from pathlib import Path
+            run_console(source, base_dir=Path(args[1]).resolve().parent)
         except SparkyError as err:
             print(err.pretty())
             sys.exit(1)

@@ -281,6 +281,103 @@ up with ⚙ (Settings → AI):
 - Your key is saved only on your computer, in Sparky's settings — it is
   never sent anywhere except to the provider you chose.
 
+## Part 12 — New in Sparky 3: words, records and surprises
+
+**Text with names inside.** Put a name (or a sum) in braces: `say "Hi {name}! Next year you'll be {age + 1}."`
+Write `{{` when you want a real brace.
+
+**Records** keep facts together:
+
+```
+set pet to {name: "Rex", age: 3}
+say name of pet
+set age of pet to 4
+change age of pet by 1
+```
+
+**Better asking.** `ask number "How old are you?" into age` keeps asking until it gets a number.
+`ask "Pick one" choices ["cat", "dog"] into pet` shows buttons.
+
+**More loops and waits:** `repeat while x < 10 ... end`, `wait until timer > 3`.
+
+**Catching problems:** `try ... oops ... end` — inside `oops`, `problem` says what went wrong.
+
+**Sharing commands between files:** `use "shapes.spark"` brings in the commands you taught there.
+
+**Remembering between runs:** `save score as "best"` and `load "best" into best` (0 if nothing was saved yet).
+
+**Things Sparky just knows:** `timer`, `reset timer`, `hour`, `minute`, `second`, `today`, `weekday`, `pi`.
+
+**More tools:** `round(x, 2)`, `clamp(x, 0, 10)`, `log(100)`, `rgb(255, 136, 0)`, `distance(x, y)`, `angle(x, y)`,
+`replace(t, "a", "b")`, `begins(t, "he")`, `ends(t, "lo")`, `find(t, "x")`, `words(t)`, `letters(t)`, `capital(t)`,
+`index(l, x)`, `slice(l, 2, 3)`, `range(1, 10)`, `shuffle(l)`, `unique(l)`, `count(l, x)`, `insert x at 1 in l`,
+`item -1 of l` (the last one). Names can be in any alphabet: `set नाम to "Ravi"`.
+
+## Part 13 — New in Sparky 3: the stage
+
+**Many sprites:** `make sprite rocket with costume "rocket"` (costumes: cat, dog, rocket, robot, dragon… or any emoji —
+press the costume button on the stage to pick one). Then `tell rocket ... end`. New sprites start with their pen up.
+Looks: `costume "cat"`, `next costume`, `ghost 50`, `layer front`, `think "Hmm..."`, `say "Hi" for 2 seconds`, `speak "Hello"`.
+
+**Games:**
+
+```
+when key "space" pressed
+  say "jump!"
+end
+when clicked
+  say "ouch!"
+end
+forever
+  if key "right" down then
+    move 5
+  end
+  bounce if on edge
+  next frame
+end
+```
+
+Also: `when stage clicked`, `broadcast "go"` / `when message "go"`, `mouse x`, `mouse y`, `mouse down`,
+`touching rocket`, `touching edge`, `distance to rocket`, `glide to 100 50 in 2 seconds`.
+Click the stage first so it hears your keys.
+
+**Shapes and colors:** `circle 50`, `rectangle 80 by 40`, `polygon 6 sides 40`, `star 5 points 40`, `dot 10`,
+`arc 90 radius 50`, `fill color "yellow"`, `no fill`, `pen style dashed`, `pen opacity 50`, `pen color rainbow`,
+`random color`, `write "Score" size 30 bold`, `backdrop "space"` (space, ocean, grass, sunset, night, grid, or a picture file).
+
+**Stage tools:** grid and axes, direction arrows, turbo, the sprites list, costumes, PNG (1×, 2×, 4×) and SVG pictures,
+record an animated GIF, copy, fullscreen. Click the stage while nothing runs to copy `x y` for `goto`.
+
+## Part 14 — Arduino
+
+Sparky works like the Arduino IDE too. Open the **Arduino** panel (the chip icon), pick your board and its port,
+then press **Upload** (or **Verify** to just check the code). If you don't have Arduino IDE, Sparky sets up Arduino's
+tools for you with one click, and it shares boards, libraries and the sketchbook with Arduino IDE when you do.
+
+- **Sketches** (`.ino`): File → New Arduino sketch, or Learn → Arduino examples (Blink, traffic light, button, fade,
+  buzzer song, servo, distance sensor, night light, Serial hello).
+- **Serial Monitor and Plotter**: see what the board prints, send it messages, and watch numbers as live lines
+  (`Serial.println(value)`, or `Serial.print("temp:"); Serial.println(t);` for named lines).
+- **Libraries** and **Boards**: search and install, right inside Sparky.
+- **Friendly errors**: a missing `;` or a wrong capital letter turns the line red and Sparky explains it.
+- **Pin maps** for Uno, Nano and Pico.
+
+**Sparky for Arduino** — write Sparky words and upload them:
+
+```
+forever
+  pin 13 on
+  wait 0.5
+  pin 13 off
+  wait 0.5
+end
+```
+
+`pin 13 on` / `pin 13 off`, `pin 9 to 128` (fade), `read pin A0`, `servo 9 to 90`, `buzzer 8` then `play note 4 for 0.5`,
+and `say` prints to the Serial Monitor. **Show as Arduino** shows the real Arduino code Sparky makes.
+
+C and C++ files (`.c`, `.cpp`) run on your computer too, with its own compiler.
+
 ## Full command reference
 
 | Command | What it does |
@@ -310,6 +407,17 @@ up with ⚙ (Settings → AI):
 | `speed 1..10` | how fast |
 | `random A to B`, `round x`, `abs x` | numbers |
 | `+ - * / mod`, `= > < >= <=`, `is`, `is not`, `and or not` | math & logic |
+| `say "Hi {name}"` | text with values inside |
+| `set p to {name: "Rex"}` / `name of p` / `set name of p to "Max"` | records |
+| `repeat while COND ... end` / `wait until COND` | loops and waits |
+| `ask number "..." into x` / `ask "..." choices [...] into x` | asking |
+| `try ... oops ... end` / `use "file.spark"` | problems / sharing |
+| `save x as "name"` / `load "name" into x` | memory between runs |
+| `make sprite r with costume "rocket"` / `tell r ... end` | many sprites |
+| `when key "space" pressed` / `when clicked` / `when stage clicked` / `when message "go"` / `broadcast "go"` | events |
+| `circle` `rectangle` `polygon` `star` `dot` `arc` / `fill color` / `no fill` | shapes |
+| `backdrop "space"` / `costume` / `ghost` / `layer` / `think` / `speak` | looks |
+| `pin 13 on` / `read pin A0` / `servo 9 to 90` / `buzzer 8` | Sparky for Arduino |
 
 ---
 

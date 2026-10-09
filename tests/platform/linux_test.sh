@@ -25,6 +25,7 @@ export HOME=/tmp/otahome XDG_STATE_HOME=/tmp/otahome/.state SPARKY_SETTINGS_FILE
 mkdir -p "$HOME"
 SPARKY_SELFCHECK_UPDATE_URL=http://127.0.0.1:8899 ./sparky selfcheck 2>&1 | tail -1 | grep -o "installed pack [^ |]*"
 ./sparky selfcheck 2>&1 | tail -1 | grep -o "running pack [^ |]*"
+./sparky selfcheck ui "/t/shot-pack-$ARCH.png" 2>&1 | grep -o "Sparky [^ |]* | installed.*lines drawn: [0-9]*"
 echo "--- full update (new runtime: swaps the app folder)"
 SPARKY_UPDATE_NO_RELAUNCH=1 SPARKY_SELFCHECK_CHANNEL=stable SPARKY_SELFCHECK_UPDATE_URL=http://127.0.0.1:8899 \
   ./sparky selfcheck 2>&1 | tail -1 | grep -o "staged full update [^ |]*"

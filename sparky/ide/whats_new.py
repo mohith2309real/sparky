@@ -3,6 +3,20 @@
 
 RELEASES = [
     {
+        "version": "3.0.0-alpha.2",
+        "date": "2026-10-09",
+        "title": "Games, shapes, records — and Arduino",
+        "items": [
+            "Many sprites with emoji costumes, plus when key pressed, when clicked and broadcast.",
+            "Shapes, fills, dashed and rainbow pens, backdrops, thought bubbles and speak.",
+            "Text with {names} inside, records, ask with buttons, try / oops, save and load.",
+            "Record the stage as an animated GIF, or save it as a PNG or SVG.",
+            "Sparky works like the Arduino IDE: boards, Upload, Serial Monitor and Plotter.",
+            "Sparky for Arduino: write pin 13 on and upload it to a real board.",
+            "Friendlier errors that show what you wrote and what to try.",
+        ],
+    },
+    {
         "version": "3.0.0-alpha.1",
         "date": "2026-10-08",
         "title": "A whole new look, and updates that install themselves",

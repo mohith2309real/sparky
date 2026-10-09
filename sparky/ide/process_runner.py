@@ -10,6 +10,7 @@ from PyQt6.QtCore import QObject, QProcess, QProcessEnvironment, pyqtSignal
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 TRACEBACK_LINE = re.compile(r'File "([^"]+)", line (\d+)')
 NODE_LINE = re.compile(r"^(/[^:\n]+|[A-Za-z]:\\[^:\n]+):(\d+)", re.M)
+C_ERROR_LINE = re.compile(r"^(/[^:\n]+|[A-Za-z]:\\[^:\n]+):(\d+):\d+: (?:fatal )?error", re.M)
 
 
 class ProcessRunner(QObject):
@@ -75,7 +76,7 @@ class ProcessRunner(QObject):
         self._read_out()
         self._read_err()
         matches = TRACEBACK_LINE.findall(self.stderr_text) or \
-            NODE_LINE.findall(self.stderr_text)
+            C_ERROR_LINE.findall(self.stderr_text)[:1] or NODE_LINE.findall(self.stderr_text)
         if matches and not self.stopped:
             path, line = matches[-1]
             self.error_line.emit(path, int(line))

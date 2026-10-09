@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from sparky.lang import parse, Interpreter, Runtime  # noqa: E402
+from sparky.lang import SparkyError
 from sparky.lang.to_python import to_python  # noqa: E402
 from sparky.ide.lessons_data import LESSONS  # noqa: E402
 
@@ -56,6 +57,10 @@ class FakeTurtle(types.ModuleType):
             self.calls += 1
             if self.calls > 5000:
                 raise KeyboardInterrupt
+            if name in ("position", "pos"):
+                return (0.0, 0.0)          # like the real turtle: an (x, y) pair
+            if name == "isdown":
+                return True
             return 0
         return call
 
@@ -117,7 +122,13 @@ def check(name, ok, detail=""):
 sources = {p.name: p.read_text() for p in sorted((ROOT / "examples").glob("*.spark"))}
 sources.update({f"lesson: {l['title']}": l["code"] for l in LESSONS})
 for name, src in sources.items():
-    py = to_python(src)
+    try:
+        py = to_python(src)
+    except SparkyError as err:
+        # sprites and events don't translate yet — that must be said kindly
+        check(f"explains what it can't translate: {name}", "can't translate" in err.message,
+              err.message)
+        continue
     compile(py, name, "exec")
     if "turtle" in py:
         calls = run_with_fake_turtle(py)

@@ -60,16 +60,21 @@ class Random(Node):
 # ---------- statements ----------
 
 class Say(Node):
-    def __init__(self, value, line):
+    # say VALUE (for SECONDS)
+    def __init__(self, value, line, duration=None):
         super().__init__(line)
         self.value = value
+        self.duration = duration
 
 
 class Ask(Node):
-    def __init__(self, prompt, target, line):
+    # mode is "text" or "number"; choices is an expression giving a list, or None
+    def __init__(self, prompt, target, line, mode="text", choices=None):
         super().__init__(line)
         self.prompt = prompt
         self.target = target
+        self.mode = mode
+        self.choices = choices
 
 
 class SetVar(Node):
@@ -211,9 +216,11 @@ class Speed(Node):
 
 
 class WriteText(Node):
-    def __init__(self, value, line):
+    # style: {"size": node, "bold": bool, "italic": bool}
+    def __init__(self, value, line, style=None):
         super().__init__(line)
         self.value = value
+        self.style = style or {}
 
 
 class Beep(Node):
@@ -315,3 +322,268 @@ class SetItem(Node):
         self.name = name
         self.index = index
         self.value = value
+
+
+# ---------- Sparky 3.0 ----------
+
+class Template(Node):
+    # "Hi {name}!" — parts are plain text or expression nodes
+    def __init__(self, parts, line):
+        super().__init__(line)
+        self.parts = parts
+
+
+class RecordLit(Node):
+    # {name: "Rex", age: 3} — pairs of (field name, expression)
+    def __init__(self, pairs, line):
+        super().__init__(line)
+        self.pairs = pairs
+
+
+class Field(Node):
+    # FIELD of TARGET
+    def __init__(self, name, target, line):
+        super().__init__(line)
+        self.name = name
+        self.target = target
+
+
+class SetField(Node):
+    # set FIELD of TARGET to VALUE
+    def __init__(self, name, target, value, line):
+        super().__init__(line)
+        self.name = name
+        self.target = target
+        self.value = value
+
+
+class ChangeField(Node):
+    # change FIELD of TARGET by AMOUNT
+    def __init__(self, name, target, amount, line):
+        super().__init__(line)
+        self.name = name
+        self.target = target
+        self.amount = amount
+
+
+class RepeatWhile(Node):
+    def __init__(self, condition, body, line):
+        super().__init__(line)
+        self.condition = condition
+        self.body = body
+
+
+class WaitUntil(Node):
+    def __init__(self, condition, line):
+        super().__init__(line)
+        self.condition = condition
+
+
+class InsertAt(Node):
+    # insert VALUE at INDEX in NAME
+    def __init__(self, value, index, name, line):
+        super().__init__(line)
+        self.value = value
+        self.index = index
+        self.name = name
+
+
+class ResetTimer(Node):
+    pass
+
+
+class Use(Node):
+    # use "shapes.spark"
+    def __init__(self, path, line):
+        super().__init__(line)
+        self.path = path
+
+
+class Try(Node):
+    def __init__(self, body, oops_body, line):
+        super().__init__(line)
+        self.body = body
+        self.oops_body = oops_body
+
+
+class Think(Node):
+    def __init__(self, value, line, duration=None):
+        super().__init__(line)
+        self.value = value
+        self.duration = duration
+
+
+class Speak(Node):
+    def __init__(self, value, line):
+        super().__init__(line)
+        self.value = value
+
+
+class When(Node):
+    # kind: "key" (value = key name), "message" (value = message),
+    # "clicked" (sprite = name), "stage"
+    def __init__(self, kind, value, sprite, body, line):
+        super().__init__(line)
+        self.kind = kind
+        self.value = value
+        self.sprite = sprite
+        self.body = body
+
+
+class Broadcast(Node):
+    def __init__(self, message, wait, line):
+        super().__init__(line)
+        self.message = message
+        self.wait = wait
+
+
+class KeyDown(Node):
+    # key "left" down   (an expression)
+    def __init__(self, key, line):
+        super().__init__(line)
+        self.key = key
+
+
+class Mouse(Node):
+    # mouse x / mouse y / mouse down
+    def __init__(self, what, line):
+        super().__init__(line)
+        self.what = what
+
+
+class NextFrame(Node):
+    pass
+
+
+class MakeSprite(Node):
+    def __init__(self, name, costume, line):
+        super().__init__(line)
+        self.name = name
+        self.costume = costume
+
+
+class Tell(Node):
+    def __init__(self, name, body, line):
+        super().__init__(line)
+        self.name = name
+        self.body = body
+
+
+class Costume(Node):
+    # costume VALUE, or "next costume" (value None)
+    def __init__(self, value, line):
+        super().__init__(line)
+        self.value = value
+
+
+class Ghost(Node):
+    def __init__(self, value, line):
+        super().__init__(line)
+        self.value = value
+
+
+class Layer(Node):
+    # where: "front" or "back"
+    def __init__(self, where, line):
+        super().__init__(line)
+        self.where = where
+
+
+class Touching(Node):
+    # touching NAME / touching edge / touching mouse   (an expression)
+    def __init__(self, what, line):
+        super().__init__(line)
+        self.what = what
+
+
+class DistanceTo(Node):
+    # distance to NAME   (an expression)
+    def __init__(self, what, line):
+        super().__init__(line)
+        self.what = what
+
+
+class Bounce(Node):
+    pass
+
+
+class Glide(Node):
+    def __init__(self, x, y, seconds, line):
+        super().__init__(line)
+        self.x = x
+        self.y = y
+        self.seconds = seconds
+
+
+class Shape(Node):
+    # kind: circle, rectangle, polygon, star, dot, arc — args are expressions
+    def __init__(self, kind, args, line):
+        super().__init__(line)
+        self.kind = kind
+        self.args = args
+
+
+class Fill(Node):
+    # fill color VALUE, or "no fill" (value None)
+    def __init__(self, value, line):
+        super().__init__(line)
+        self.value = value
+
+
+class RandomColor(Node):
+    pass
+
+
+class Backdrop(Node):
+    def __init__(self, value, line):
+        super().__init__(line)
+        self.value = value
+
+
+class Save(Node):
+    # save VALUE as NAME
+    def __init__(self, value, name, line):
+        super().__init__(line)
+        self.value = value
+        self.name = name
+
+
+class Load(Node):
+    # load NAME into TARGET
+    def __init__(self, name, target, line):
+        super().__init__(line)
+        self.name = name
+        self.target = target
+
+
+# ---------- Sparky for Arduino ----------
+
+class Pin(Node):
+    # pin 13 on / pin 13 off / pin 9 to 128
+    def __init__(self, pin, mode, value, line):
+        super().__init__(line)
+        self.pin = pin
+        self.mode = mode
+        self.value = value
+
+
+class Servo(Node):
+    # servo 9 to 90
+    def __init__(self, pin, angle, line):
+        super().__init__(line)
+        self.pin = pin
+        self.angle = angle
+
+
+class Buzzer(Node):
+    # buzzer 8   (where play note and beep go on a board)
+    def __init__(self, pin, line):
+        super().__init__(line)
+        self.pin = pin
+
+
+class ReadPin(Node):
+    # read pin A0   (an expression)
+    def __init__(self, pin, line):
+        super().__init__(line)
+        self.pin = pin

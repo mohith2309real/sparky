@@ -473,6 +473,28 @@ or "#ff8800"</td></tr>
 <tr><td><b>clear</b></td><td>erase all drawings</td></tr>
 </table>
 
+<h2>New in Sparky 3</h2>
+<table cellpadding="4">
+<tr><td><b>say "Hi {name}!"</b></td><td>put values inside text with braces</td></tr>
+<tr><td><b>set pet to {name: "Rex", age: 3}</b></td><td>a record — <b>name of pet</b>,
+<b>set age of pet to 4</b></td></tr>
+<tr><td><b>ask number "Age?" into age</b></td><td>keeps asking until it's a number</td></tr>
+<tr><td><b>ask "Pick" choices ["a", "b"] into c</b></td><td>answer buttons</td></tr>
+<tr><td><b>repeat while</b> / <b>wait until</b></td><td>more loops and waits</td></tr>
+<tr><td><b>try ... oops ... end</b></td><td>catch a problem; <b>problem</b> says what it was</td></tr>
+<tr><td><b>use "shapes.spark"</b></td><td>commands taught in another file</td></tr>
+<tr><td><b>save score as "best"</b> / <b>load "best" into best</b></td><td>remember between runs</td></tr>
+<tr><td><b>timer</b>, <b>reset timer</b>, <b>hour</b>, <b>today</b>, <b>pi</b></td><td>things Sparky knows</td></tr>
+<tr><td><b>make sprite rocket with costume "rocket"</b>, <b>tell rocket ... end</b></td><td>many sprites</td></tr>
+<tr><td><b>when key "space" pressed</b>, <b>when clicked</b>, <b>when stage clicked</b>,
+<b>broadcast "go"</b>, <b>when message "go"</b></td><td>events (click the stage so it hears keys)</td></tr>
+<tr><td><b>key "left" down</b>, <b>mouse x</b>, <b>touching edge</b>, <b>distance to rocket</b></td><td>sensing</td></tr>
+<tr><td><b>next frame</b>, <b>glide to 100 50 in 2 seconds</b>, <b>bounce if on edge</b></td><td>smooth games</td></tr>
+<tr><td><b>circle 50</b>, <b>rectangle 80 by 40</b>, <b>star 5 points 40</b>, <b>fill color "yellow"</b></td><td>shapes</td></tr>
+<tr><td><b>pen style dashed</b>, <b>pen color rainbow</b>, <b>backdrop "space"</b></td><td>more looks</td></tr>
+<tr><td><b>pin 13 on</b>, <b>read pin A0</b>, <b>servo 9 to 90</b></td><td>Sparky for Arduino (press Upload)</td></tr>
+</table>
+
 <h2>Numbers with a minus</h2>
 <p><b>goto 10 -60</b> and <b>move -50</b> work the way you'd hope.
 Write subtraction with spaces (<b>5 - 3</b>) or none (<b>5-3</b>).</p>

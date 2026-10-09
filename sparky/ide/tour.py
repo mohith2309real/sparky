@@ -126,6 +126,17 @@ def build_steps(w):
              "Ask for hints when you're stuck. It works with Claude or other AI services "
              "(you add your own key in Settings → AI).",
              target=lambda: w.activity_buttons.get("ai")),
+        Step("stage_tools", "Stage tools",
+             "Show the grid, see which way sprites point, turn on turbo, pick a costume, save a "
+             "picture (even a sharp SVG), or <b>record an animated GIF</b> of your program.",
+             target=lambda: w.stage_tools, prepare=w.show_workspace),
+        Step("arduino", "Arduino boards",
+             "Sparky works like the Arduino IDE too: pick your board and port, press "
+             "<b>Upload</b>, and watch the Serial Monitor. You can even write Sparky words like "
+             "<b>pin 13 on</b>. Open the Arduino panel.",
+             target=lambda: w.activity_buttons.get("arduino"),
+             done=lambda: w.sidebar.isVisible() and w.sidebar.currentWidget() is w.arduino_panel,
+             helper=lambda: w.show_sidebar_named("arduino"), helper_label="Open it for me"),
         Step("learn", "Learn",
              "Lessons take you from your first program to games and Python.",
              target=lambda: w.activity_buttons.get("learn")),

@@ -12,13 +12,16 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import QApplication
 
 from ..lang import SparkyError, parse, Interpreter, Runtime
+from ..lang.runtime import FileMemory
 
 
 class GuiRuntime(Runtime):
     def __init__(self, thread, model):
+        super().__init__()
         self.thread = thread
         self.model = model
         self.answers = queue.Queue()
+        self.memory = FileMemory()
 
     def say(self, text):
         self.thread.sig_say.emit(text)
@@ -28,17 +31,33 @@ class GuiRuntime(Runtime):
         answer = self.answers.get()   # blocks until the input line replies
         return answer                  # None means "we were stopped"
 
+    def ask_choice(self, prompt, choices):
+        self.thread.sig_choice.emit(prompt, list(choices))
+        return self.answers.get()
+
     def bubble(self, text):
-        self.model.set_bubble(text)
+        self.model.set_bubble("sparky", "say", text)
+
+    def sprite_bubble(self, text, kind, sprite):
+        self.model.set_bubble(sprite, kind, text)
 
     def line(self, x1, y1, x2, y2, color, width):
-        self.model.add_segment(x1, y1, x2, y2, color, width)
+        self.model.add_line(x1, y1, x2, y2, {"color": color, "width": width})
 
-    def sprite(self, x, y, heading, visible, scale):
-        self.model.set_sprite(x, y, heading, visible, scale)
+    def pen_line(self, x1, y1, x2, y2, pen):
+        self.model.add_line(x1, y1, x2, y2, pen)
 
-    def stamp(self, x, y, heading, scale):
-        self.model.add_stamp(x, y, heading, scale)
+    def shape(self, points, closed, pen, fill):
+        self.model.add_shape(points, closed, pen, fill)
+
+    def sprite_changed(self, sprite):
+        self.model.set_sprite(sprite.snapshot())
+
+    def stamp_sprite(self, snapshot):
+        self.model.add_stamp(snapshot)
+
+    def write_styled(self, x, y, text, color, scale, style):
+        self.model.add_text(x, y, text, color, scale, style)
 
     def write_text(self, x, y, text, color, scale):
         self.model.add_text(x, y, text, color, scale)
@@ -49,16 +68,46 @@ class GuiRuntime(Runtime):
     def background(self, color):
         self.model.set_background(color)
 
+    def backdrop(self, name):
+        self.model.set_backdrop(name)
+
     def beep(self):
         QApplication.beep()
 
     def play_sound(self, name, note, duration):
         self.thread.sig_sound.emit(name, float(note), float(duration))
 
+    def speak(self, text):
+        self.thread.sig_speak.emit(text)
+
+    # keys, clicks and the mouse come from the stage window
+    def events(self):
+        return self.model.drain_events()
+
+    def wants_events(self):
+        return True
+
+    def key_down(self, name):
+        if name == "any":
+            return bool(self.model.keys_down)
+        return name in self.model.keys_down
+
+    def mouse(self):
+        return self.model.mouse
+
+    def save_value(self, name, value):
+        self.memory.save(name, value)
+
+    def load_value(self, name):
+        return self.memory.load(name)
+
 
 class RunnerThread(QThread):
     sig_say = pyqtSignal(str)
     sig_ask = pyqtSignal(str)
+    sig_choice = pyqtSignal(str, list)  # question, choices (shown as buttons)
+    sig_speak = pyqtSignal(str)
+    sig_listening = pyqtSignal()        # the main program ended; `when` blocks keep listening
     sig_sound = pyqtSignal(str, float, float)  # name ("" = note), note, secs
     sig_line = pyqtSignal(int)          # line currently running
     sig_error = pyqtSignal(str, int)    # friendly message, line (0 = unknown)
@@ -66,9 +115,10 @@ class RunnerThread(QThread):
     sig_paused = pyqtSignal(int)        # paused (by Pause or Step) at this line
     sig_resumed = pyqtSignal()
 
-    def __init__(self, source, model, start_speed, parent=None):
+    def __init__(self, source, model, start_speed, parent=None, base_dir=None):
         super().__init__(parent)
         self.source = source
+        self.base_dir = base_dir
         self.model = model
         self.start_speed = start_speed
         self.runtime = GuiRuntime(self, model)
@@ -135,7 +185,8 @@ class RunnerThread(QThread):
     def run(self):
         try:
             program = parse(self.source)
-            self.interpreter = Interpreter(program, self.runtime)
+            self.interpreter = Interpreter(program, self.runtime, base_dir=self.base_dir,
+                                           source=self.source)
             self.interpreter.speed = self.start_speed
         except SparkyError as err:
             self.sig_error.emit(err.pretty(), err.line or 0)
@@ -145,11 +196,22 @@ class RunnerThread(QThread):
         last_line = 0
         last_line_emit = 0.0
         steps = 0
+        listening = False
+        self.model.keys_down.clear()
+        self.model.listening = True
         try:
             for tick in self.interpreter.run():
                 if self._stop:
                     break
                 line = tick[-1]
+                if line is None:
+                    # the scheduler waiting for keys, clicks or other scripts
+                    if not listening and self.interpreter.handlers and not any(
+                            t.handler is None and not t.done for t in self.interpreter.threads):
+                        listening = True
+                        self.sig_listening.emit()
+                    self.nap(tick[1])
+                    continue
                 if self._paused:
                     self.wait_if_paused(line)
                     if self._stop:
@@ -173,14 +235,17 @@ class RunnerThread(QThread):
                     if steps % 500 == 0:
                         time.sleep(0.001)  # let the UI breathe in hot loops
         except SparkyError as err:
+            self.model.listening = False
             self.sig_error.emit(err.pretty(), err.line or 0)
             self.sig_done.emit(False)
             return
         except Exception as err:  # never show kids a traceback
+            self.model.listening = False
             self.sig_error.emit(
                 f"Oops! Something surprised me deep inside: {err}", 0)
             self.sig_done.emit(False)
             return
+        self.model.listening = False
         self.sig_done.emit(True)
 
     def answer(self, text):

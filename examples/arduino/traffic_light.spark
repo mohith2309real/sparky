@@ -1,0 +1,18 @@
+# Sparky for Arduino: a traffic light.
+# Red LED on pin 12, yellow on 11, green on 10 (each with a 220 ohm resistor to GND).
+
+set red to 12
+set yellow to 11
+set green to 10
+
+teach light led time
+  pin led on
+  wait time
+  pin led off
+end
+
+forever
+  do light red 3
+  do light green 3
+  do light yellow 1
+end

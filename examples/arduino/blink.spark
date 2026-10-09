@@ -1,0 +1,9 @@
+# Sparky for Arduino: blink the LED on pin 13 (the one built into the board).
+# Plug in your board, pick it in the Arduino panel, and press Upload.
+
+forever
+  pin 13 on
+  wait 0.5
+  pin 13 off
+  wait 0.5
+end

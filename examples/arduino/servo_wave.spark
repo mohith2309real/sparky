@@ -1,0 +1,9 @@
+# Sparky for Arduino: a servo on pin 9 waves hello.
+
+repeat 3 times
+  servo 9 to 30
+  wait 0.4
+  servo 9 to 150
+  wait 0.4
+end
+servo 9 to 90

@@ -1,0 +1,11 @@
+# Sparky for Arduino: play a song on a buzzer (pin 8 and GND).
+# Notes go from 1 (low do) to 14 (high do), like on Sparky's stage.
+
+buzzer 8
+for n from 1 to 8
+  play note n for 0.2
+end
+play note 8 for 0.6
+for n from 8 to 1 by -1
+  play note n for 0.2
+end

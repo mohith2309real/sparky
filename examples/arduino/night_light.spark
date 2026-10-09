@@ -1,0 +1,13 @@
+# Sparky for Arduino: a night light.
+# Light sensor on A0. Open the Serial Monitor to see the light level.
+
+forever
+  set light to read pin A0
+  say "light:{light}"
+  if light < 300 then
+    pin 13 on
+  else
+    pin 13 off
+  end
+  wait 0.1
+end

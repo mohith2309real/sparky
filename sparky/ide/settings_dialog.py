@@ -192,6 +192,24 @@ class SettingsDialog(QDialog):
         self.grid = QCheckBox("Show the grid on the stage")
         self.grid.setChecked(s.value("stage_grid", False, type=bool))
         form.addRow("", self.grid)
+        self.stage_color = QComboBox()
+        self.stage_color.addItem("Follow the theme", "")
+        for label, value in (("Cream", "#faf9f5"), ("White", "#ffffff"), ("Sky", "#e6f3fb"),
+                             ("Mint", "#e8f5ec"), ("Ink (dark)", "#1c1b19"), ("Night (dark)", "#141a40")):
+            self.stage_color.addItem(label, value)
+        current = s.value("stage_color", "", type=str)
+        index = self.stage_color.findData(current)
+        if index < 0 and current:
+            self.stage_color.addItem(current, current)
+            index = self.stage_color.count() - 1
+        self.stage_color.setCurrentIndex(max(0, index))
+        pick = QPushButton("Pick…")
+        pick.setObjectName("GhostButton")
+        pick.clicked.connect(self.pick_stage_color)
+        row = QHBoxLayout()
+        row.addWidget(self.stage_color, 1)
+        row.addWidget(pick)
+        form.addRow("Stage color", row)
         self.sounds = QCheckBox("Play sounds")
         self.sounds.setChecked(m.sound_bank.enabled)
         form.addRow("Sounds", self.sounds)
@@ -199,6 +217,19 @@ class SettingsDialog(QDialog):
         self.volume.setRange(0, 100)
         self.volume.setValue(int(m.sound_bank.volume * 100))
         form.addRow("Volume", self.volume)
+
+    def pick_stage_color(self):
+        from PyQt6.QtGui import QColor
+        from PyQt6.QtWidgets import QColorDialog
+        start = QColor(self.stage_color.currentData() or "#faf9f5")
+        color = QColorDialog.getColor(start, self, "Stage color")
+        if color.isValid():
+            value = color.name()
+            index = self.stage_color.findData(value)
+            if index < 0:
+                self.stage_color.addItem(value, value)
+                index = self.stage_color.count() - 1
+            self.stage_color.setCurrentIndex(index)
 
     def page_languages(self, layout):
         s, languages = self.settings, self.languages
@@ -462,6 +493,8 @@ class SettingsDialog(QDialog):
         w.sound_bank.volume = self.volume.value() / 100
         s.setValue("stage_grid", self.grid.isChecked())
         w.set_grid(self.grid.isChecked())
+        s.setValue("stage_color", self.stage_color.currentData() or "")
+        w.apply_stage_color()
         s.setValue("start_home", self.start_home.isChecked())
         s.setValue("ui_scale", self.scale.currentData())
         python = self.python.currentText().strip()

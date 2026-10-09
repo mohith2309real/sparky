@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QInputDialo
 from .. import __version__
 from . import design, icons, languages, mascot, prefs, vscode, whats_new
 from .ai import AIPanel
+from .arduino_panel import ArduinoPanel, SerialCard
 from .blocks import BlockPalette
 from .dialogs import (AboutDialog, CommunityDialog, FirstRunDialog, WhatsNewDialog,
                       open_site)
@@ -40,12 +41,14 @@ from .runner import RunnerThread
 from .settings_dialog import SettingsDialog
 from .sounds import SoundBank
 from .stage import StageModel, StageView, StageWindow
+from .stage_tools import ChoiceBar, CostumePicker, GifRecorder, Speaker, SpritesPanel
 from .theme import DARK, LIGHT, build_qss, load_fonts
 from .tour import TourOverlay, build_steps
 from .widgets import (Card, IconButton, Pill, SpeedControl, Toasts, UpdateBar, REDUCE_MOTION,
                       retint, text_button)
 from ..lang import SparkyError
 from ..lang.to_python import to_python
+from ..arduino.translate import is_arduino_program
 from ..paths import ASSETS_DIR, EXAMPLES_DIR, USER_DIR, prepare_user_dirs
 from ..update.service import UpdateService
 
@@ -69,7 +72,19 @@ say "Now you try!"
 '''
 
 SIDEBAR = [("blocks", "blocks", "Blocks"), ("files", "files", "Files"),
-           ("extensions", "extensions", "Extensions"), ("ai", "ai", "AI helper")]
+           ("extensions", "extensions", "Extensions"), ("ai", "ai", "AI helper"),
+           ("arduino", "chip", "Arduino: boards, upload, Serial Monitor")]
+
+NEW_SKETCH = """void setup() {
+  // put your setup code here, to run once:
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+}
+"""
 PRO_ONLY = {"files", "extensions"}
 MAX_RECENT = 12
 
@@ -138,6 +153,8 @@ class MainWindow(QMainWindow):
         self.updates = UpdateService(self, self.settings)
 
         self.stage_model = StageModel()
+        self.speaker = Speaker()
+        self.turbo_saved = None
         self.build_ui()
         self.build_menus()
         self.toasts = Toasts(self)
@@ -272,10 +289,13 @@ class MainWindow(QMainWindow):
         self.files_panel = FilesPanel(self)
         self.ai_panel = AIPanel(self)
         self.extensions_panel = ExtensionsPanel(self)
+        self.arduino_panel = ArduinoPanel(self)
+        self.arduino_panel.message.connect(lambda text: self.toast(text, 3000))
         self.sidebar = QStackedWidget()
         self.sidebar.setObjectName("SidePanel")
         self.sidebar.setMinimumWidth(230)
-        for widget in (self.blocks, self.files_panel, self.extensions_panel, self.ai_panel):
+        for widget in (self.blocks, self.files_panel, self.extensions_panel, self.ai_panel,
+                       self.arduino_panel):
             self.sidebar.addWidget(widget)
 
         center = QWidget()
@@ -301,8 +321,10 @@ class MainWindow(QMainWindow):
         column.setObjectName("Workspace")
         column.setChildrenCollapsible(False)
         column.addWidget(self.build_stage_card())
+        self.serial_card = SerialCard(self)
+        column.addWidget(self.serial_card)
         column.addWidget(self.build_console_card())
-        column.setSizes([520, 300])
+        column.setSizes([520, 300, 300])
         right_layout.addWidget(column)
         self.stage_box = right
 
@@ -320,25 +342,53 @@ class MainWindow(QMainWindow):
         self.stage = StageView(self.stage_model, self.palette_colors)
         self.stage.mouse_moved.connect(self.stage_mouse)
         self.stage.stage_clicked.connect(self.stage_click)
+        self.recorder = GifRecorder(self.stage, self)
+        self.recorder.tick.connect(self.recording_tick)
+        self.recorder.saved.connect(lambda path: self.toast(f"Saved {Path(path).name} ✓", 3200))
+        self.recorder.failed.connect(self.toast)
+        self.recorder.progress.connect(
+            lambda n, total: self.set_state("running", f"Saving the GIF… {n}/{total}")
+            if n < total else self.set_state("done", "GIF saved ✓"))
         tools = QWidget()
         row = QHBoxLayout(tools)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(2)
-        self.grid_button = IconButton("grid", "Show the grid (G)", size=16, checkable=True)
+        self.rec_label = QLabel("")
+        self.rec_label.setObjectName("RecLabel")
+        self.rec_label.hide()
+        row.addWidget(self.rec_label)
+        self.grid_button = IconButton("grid", "Show the grid and axes (G)", size=16, checkable=True)
         self.grid_button.toggled.connect(self.set_grid)
-        snap = IconButton("camera", "Save a snapshot (PNG)", size=16)
-        snap.clicked.connect(self.save_snapshot)
+        self.arrow_button = IconButton("compass", "Show which way sprites point", size=16,
+                                       checkable=True)
+        self.arrow_button.toggled.connect(self.set_arrows)
+        self.turbo_button = IconButton("bolt", "Turbo: draw instantly", size=16, checkable=True)
+        self.turbo_button.toggled.connect(self.set_turbo)
+        self.sprites_button = IconButton("list", "Sprites: where each one is", size=16,
+                                         checkable=True)
+        self.sprites_button.toggled.connect(self.show_sprites_panel)
+        costumes = IconButton("costume", "Pick a costume", size=16)
+        costumes.clicked.connect(self.pick_costume)
+        snap = IconButton("camera", "Save a picture: PNG (1×, 2×, 4×) or SVG", size=16)
+        snap.clicked.connect(lambda: self.snapshot_menu(snap))
+        self.record_button = IconButton("record", "Record the stage as an animated GIF", size=16,
+                                        checkable=True)
+        self.record_button.toggled.connect(self.toggle_recording)
         copy = IconButton("copy", "Copy the stage as a picture", size=16)
         copy.clicked.connect(self.copy_stage)
         full = IconButton("fullscreen", "Fullscreen stage (F11)", size=16)
         full.clicked.connect(self.fullscreen_stage)
         clear = IconButton("eraser", "Clear the stage", size=16)
         clear.clicked.connect(self.clear_stage)
-        for b in (self.grid_button, snap, copy, full, clear):
+        for b in (self.grid_button, self.arrow_button, self.turbo_button, self.sprites_button,
+                  costumes, snap, self.record_button, copy, full, clear):
             row.addWidget(b)
         self.stage_tools = tools
         card.add_tool(tools)
         card.body.addWidget(self.stage, 1)
+        self.sprites_panel = SpritesPanel(self.stage_model)
+        self.sprites_panel.hide()
+        card.body.addWidget(self.sprites_panel)
         card.body.setContentsMargins(8, 0, 8, 8)
         return card
 
@@ -357,6 +407,9 @@ class MainWindow(QMainWindow):
         self.console.setReadOnly(True)
         self.console.setAccessibleName("Console")
         card.body.addWidget(self.console, 1)
+        self.choice_bar = ChoiceBar()
+        self.choice_bar.chosen.connect(self.send_choice)
+        card.body.addWidget(self.choice_bar)
         ask_row = QWidget()
         ask_layout = QHBoxLayout(ask_row)
         ask_layout.setContentsMargins(8, 6, 8, 8)
@@ -430,6 +483,7 @@ class MainWindow(QMainWindow):
 
         file_menu = bar.addMenu("&File")
         act(file_menu, "New program", self.new_file, "Ctrl+N")
+        act(file_menu, "New Arduino sketch", self.new_sketch)
         act(file_menu, "Open…", self.open_file, "Ctrl+O")
         act(file_menu, "Open folder…", self.open_folder_dialog, key="open_folder")
         self.recent_menu = file_menu.addMenu("Open recent")
@@ -465,6 +519,7 @@ class MainWindow(QMainWindow):
         act(view, "Files", lambda: self.show_sidebar_named("files"), key="view_files")
         act(view, "Extensions", lambda: self.show_sidebar_named("extensions"), key="view_extensions")
         act(view, "AI helper", lambda: self.show_sidebar_named("ai"))
+        act(view, "Arduino", lambda: self.show_sidebar_named("arduino"))
         act(view, "Toggle sidebar", self.toggle_sidebar)
         view.addSeparator()
         themes = view.addMenu("Theme")
@@ -497,6 +552,13 @@ class MainWindow(QMainWindow):
         act(run, "Stop", self.stop_program)
         run.addSeparator()
         act(run, "Show as Python", self.show_as_python)
+        run.addSeparator()
+        act(run, "Arduino: Verify", lambda: self.arduino_panel.build(upload=False), "Ctrl+R")
+        act(run, "Arduino: Upload", lambda: self.arduino_panel.build(upload=True), "Ctrl+U")
+        act(run, "Arduino: Serial Monitor", lambda: self.show_serial("monitor"), "Ctrl+Shift+M")
+        act(run, "Arduino: Serial Plotter", lambda: self.show_serial("plotter"), "Ctrl+Shift+L")
+        act(run, "Show as Arduino", self.arduino_panel.show_as_arduino)
+        run.addSeparator()
         act(run, "Save a snapshot of the stage…", self.save_snapshot)
         act(run, "Clear the stage", self.clear_stage)
 
@@ -506,6 +568,8 @@ class MainWindow(QMainWindow):
         for path in sorted(EXAMPLES_DIR.glob("*.spark")) if EXAMPLES_DIR.is_dir() else []:
             act(self.examples_menu, path.stem.replace("_", " ").title(),
                 lambda p=path: self.open_example(p))
+        act(learn, "Arduino examples…", self.arduino_panel.open_examples)
+        act(learn, "Arduino pin maps", self.arduino_panel.open_pins)
         act(learn, "Take the tour", self.start_tour)
 
         help_menu = bar.addMenu("&Help")
@@ -644,8 +708,14 @@ class MainWindow(QMainWindow):
         self.update_cursor_label()
         lang = editor.language
         self.lang_label.setText(lang.name)
-        stage_lang = lang.runner == "stage"
+        board = lang.runner == "arduino" or (lang.runner == "stage" and
+                                             is_arduino_program(editor.toPlainText()))
+        stage_lang = lang.runner == "stage" and not board
         self.stage_card.setVisible(stage_lang)
+        self.run_label = "Upload" if board else "Run"
+        self.blocks.set_language(lang.id)
+        self.run_button.setText(self.run_label)
+        self.arduino_panel.restore_board()
         self.speed.setEnabled(stage_lang)
         self.step_button.setEnabled(stage_lang and not self.proc.is_running())
         runnable = lang.runner is not None or \
@@ -691,6 +761,17 @@ class MainWindow(QMainWindow):
     def new_file(self):
         self.untitled += 1
         return self.new_tab("", title=f"untitled-{self.untitled}.spark")
+
+    def new_sketch(self):
+        self.untitled += 1
+        editor = self.new_tab(NEW_SKETCH, None, languages.BY_ID["arduino"],
+                              f"sketch_{self.untitled}.ino")
+        self.show_sidebar_named("arduino")
+        return editor
+
+    def show_serial(self, which="monitor"):
+        self.show_workspace()
+        self.serial_card.show_tab(which)
 
     def open_file(self):
         start = str(self.files_panel.folder or USER_DIR)
@@ -874,6 +955,24 @@ class MainWindow(QMainWindow):
             ("Show as Python", "", self.show_as_python),
             ("Stage: show / hide grid", "", lambda: self.set_grid(not self.stage.show_grid)),
             ("Stage: save a snapshot", "", self.save_snapshot),
+            ("Stage: save the drawing as SVG", "", self.save_svg),
+            ("Stage: record as an animated GIF", "", lambda: self.record_button.toggle()),
+            ("Stage: show which way sprites point", "",
+             lambda: self.set_arrows(not self.stage.show_arrows)),
+            ("Stage: sprites list", "", lambda: self.sprites_button.toggle()),
+            ("Stage: turbo (draw instantly)", "", lambda: self.turbo_button.toggle()),
+            ("Pick a costume…", "", self.pick_costume),
+            ("New Arduino sketch", "", self.new_sketch),
+            ("Arduino: verify (compile)", "Ctrl/Cmd+R", lambda: self.arduino_panel.build(upload=False)),
+            ("Arduino: upload to the board", "Ctrl/Cmd+U", lambda: self.arduino_panel.build(upload=True)),
+            ("Arduino: Serial Monitor", "Ctrl/Cmd+Shift+M", lambda: self.show_serial("monitor")),
+            ("Arduino: Serial Plotter", "Ctrl/Cmd+Shift+L", lambda: self.show_serial("plotter")),
+            ("Arduino: libraries…", "", self.arduino_panel.open_libraries),
+            ("Arduino: board packages…", "", self.arduino_panel.open_boards),
+            ("Arduino: examples…", "", self.arduino_panel.open_examples),
+            ("Arduino: pin maps", "", self.arduino_panel.open_pins),
+            ("Arduino: pick board and port", "", lambda: self.show_sidebar_named("arduino")),
+            ("Show as Arduino", "", self.arduino_panel.show_as_arduino),
             ("Stage: copy as a picture", "", self.copy_stage),
             ("Stage: fullscreen", "F11", self.fullscreen_stage),
             ("Stage: clear", "", self.clear_stage),
@@ -1010,6 +1109,110 @@ class MainWindow(QMainWindow):
             self.grid_button.blockSignals(False)
         self.settings.setValue("stage_grid", bool(on))
 
+    def set_arrows(self, on):
+        self.stage.set_arrows(bool(on))
+        if self.arrow_button.isChecked() != bool(on):
+            self.arrow_button.blockSignals(True)
+            self.arrow_button.setChecked(bool(on))
+            self.arrow_button.blockSignals(False)
+        self.settings.setValue("stage_arrows", bool(on))
+
+    def set_turbo(self, on):
+        if on:
+            self.turbo_saved = self.speed.value()
+            self.speed.setValue(10)
+            self.toast("Turbo on: drawings appear instantly ⚡")
+        elif self.turbo_saved is not None:
+            self.speed.setValue(self.turbo_saved)
+            self.turbo_saved = None
+
+    def show_sprites_panel(self, on):
+        self.sprites_panel.setVisible(bool(on))
+
+    def pick_costume(self):
+        picker = CostumePicker(self)
+        picker.picked.connect(self.insert_costume)
+        picker.exec()
+
+    def insert_costume(self, name):
+        editor = self.editor
+        if editor is None or editor.language.runner != "stage":
+            QGuiApplication.clipboard().setText(f'costume "{name}"')
+            self.toast(f'Copied costume "{name}"')
+            return
+        cursor = editor.textCursor()
+        if cursor.positionInBlock() > 0:
+            cursor.movePosition(QTextCursor.MoveOperation.EndOfBlock)
+            cursor.insertText("\n")
+        cursor.insertText(f'costume "{name}"')
+        editor.setTextCursor(cursor)
+        editor.setFocus()
+        self.toast(f'Added costume "{name}" — press Run')
+
+    def snapshot_menu(self, anchor):
+        menu = QMenu(self)
+        for scale in (1, 2, 4):
+            menu.addAction(f"PNG picture, {scale}× ({480 * scale}×{360 * scale})",
+                           lambda s=scale: self.save_snapshot(s))
+        menu.addSeparator()
+        menu.addAction("SVG drawing (sharp at any size)", self.save_svg)
+        menu.exec(anchor.mapToGlobal(anchor.rect().bottomLeft()))
+
+    def save_svg(self):
+        folder = USER_DIR / "Snapshots"
+        folder.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H.%M.%S")
+        path, _ = QFileDialog.getSaveFileName(self, "Save the drawing as SVG",
+                                              str(folder / f"Drawing {stamp}.svg"),
+                                              "SVG drawings (*.svg)")
+        if not path:
+            return
+        if not path.lower().endswith(".svg"):
+            path += ".svg"
+        try:
+            self.stage.save_svg(path)
+            self.toast(f"Saved {Path(path).name} ✓")
+        except Exception as err:
+            self.toast(f"Couldn't save the SVG: {err}")
+
+    def toggle_recording(self, on):
+        if on:
+            if self.recorder.encoding:
+                self.record_button.blockSignals(True)
+                self.record_button.setChecked(False)
+                self.record_button.blockSignals(False)
+                self.toast("Still saving the last GIF — one moment.")
+                return
+            self.recorder.start()
+            self.rec_label.show()
+            self.toast("Recording the stage… press ● again to stop")
+            return
+        self.recorder.stop()
+        self.rec_label.hide()
+        folder = USER_DIR / "Snapshots"
+        folder.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.datetime.now().strftime("%Y-%m-%d %H.%M.%S")
+        path, _ = QFileDialog.getSaveFileName(self, "Save the recording",
+                                              str(folder / f"Stage {stamp}.gif"),
+                                              "Animated GIF (*.gif)")
+        if not path:
+            self.recorder.writer = None
+            self.toast("Recording thrown away.")
+            return
+        if not path.lower().endswith(".gif"):
+            path += ".gif"
+        self.recorder.save(path)
+        self.toast("Saving the GIF…")
+
+    def recording_tick(self, seconds):
+        self.rec_label.setText(f"● {int(seconds) // 60}:{int(seconds) % 60:02d}")
+        if not self.recorder.recording() and self.record_button.isChecked():
+            self.record_button.setChecked(False)
+
+    def celebrate(self):
+        self.stage.set_mood("wow")
+        self.stage.celebrate(REDUCE_MOTION["on"])
+
     def stage_mouse(self, point):
         if point is None:
             self.coords_label.setText("")
@@ -1021,7 +1224,7 @@ class MainWindow(QMainWindow):
             QGuiApplication.clipboard().setText(f"{x:.0f} {y:.0f}")
             self.toast(f"Copied {x:.0f} {y:.0f} — paste it after goto")
 
-    def save_snapshot(self):
+    def save_snapshot(self, scale=2):
         folder = USER_DIR / "Snapshots"
         folder.mkdir(parents=True, exist_ok=True)
         stamp = datetime.datetime.now().strftime("%Y-%m-%d %H.%M.%S")
@@ -1031,7 +1234,7 @@ class MainWindow(QMainWindow):
             return
         if not path.lower().endswith(".png"):
             path += ".png"
-        if self.stage.render_image(scale=2).save(path):
+        if self.stage.render_image(scale=scale).save(path):
             self.toast(f"Saved {Path(path).name} ✓")
         else:
             self.toast("Couldn't save the snapshot.")
@@ -1044,7 +1247,8 @@ class MainWindow(QMainWindow):
         if self.stage_window is not None and self.stage_window.isVisible():
             self.stage_window.close()
             return
-        self.stage_window = StageWindow(self.stage_model, self.palette_colors)
+        self.stage_window = StageWindow(self.stage_model, self.palette_colors,
+                                        self.stage.stage_color)
         self.stage_window.showFullScreen()
 
     def clear_stage(self):
@@ -1054,6 +1258,13 @@ class MainWindow(QMainWindow):
         self.stage_model.reset()
 
     # ---------- settings & session ----------
+
+    def apply_stage_color(self):
+        color = self.settings.value("stage_color", "", type=str)
+        self.stage.stage_color = color or None
+        if self.stage_window is not None:
+            self.stage_window.view.stage_color = color or None
+        self.stage.update()
 
     def load_settings(self):
         s = self.settings
@@ -1068,6 +1279,8 @@ class MainWindow(QMainWindow):
         self.sound_bank.volume = s.value("volume", 80, type=int) / 100
         self.set_reduce_motion(s.value("reduce_motion", False, type=bool))
         self.set_grid(s.value("stage_grid", False, type=bool))
+        self.set_arrows(s.value("stage_arrows", False, type=bool))
+        self.apply_stage_color()
         geometry = s.value("geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
@@ -1144,7 +1357,9 @@ class MainWindow(QMainWindow):
 
     def console_write(self, text, color=None):
         style = f' style="color:{color}"' if color else ""
-        self.console.appendHtml(f"<span{style}>{html.escape(text)}</span>")
+        # keep line breaks and indents (errors show "You wrote / Try this" on their own lines)
+        body = html.escape(text).replace("  ", "&nbsp; ").replace("\n", "<br>")
+        self.console.appendHtml(f"<span{style}>{body}</span>")
         bar = self.console.verticalScrollBar()
         bar.setValue(bar.maximum())
 
@@ -1174,7 +1389,8 @@ class MainWindow(QMainWindow):
         self.ask_input.setEnabled(False)
 
     def is_running(self):
-        return bool(self.runner and self.runner.isRunning()) or self.proc.is_running()
+        return bool(self.runner and self.runner.isRunning()) or self.proc.is_running() or \
+            self.arduino_panel.busy()
 
     def run_program(self, step=False):
         if self.is_running():
@@ -1186,7 +1402,10 @@ class MainWindow(QMainWindow):
         lang = editor.language
         self.last_error = ""
         self.run_count += 1
-        if lang.runner == "stage":
+        if lang.runner == "arduino" or (lang.runner == "stage" and not step
+                                        and is_arduino_program(editor.toPlainText())):
+            self.arduino_panel.build(upload=True)
+        elif lang.runner == "stage":
             self.run_sparky(editor, step=step)
         elif lang.runner == "browser":
             if editor.path is None and not self.save_as(editor):
@@ -1200,9 +1419,15 @@ class MainWindow(QMainWindow):
     def run_sparky(self, editor, step=False):
         self.reset_run_view()
         self.run_editor = editor
-        self.runner = RunnerThread(editor.toPlainText(), self.stage_model, self.speed.value())
+        source = editor.toPlainText()
+        base = editor.path.parent if editor.path else USER_DIR
+        self.runner = RunnerThread(source, self.stage_model, self.speed.value(), base_dir=base)
         self.runner.sig_say.connect(self.console_write)
         self.runner.sig_ask.connect(self.on_ask)
+        self.runner.sig_choice.connect(self.on_choice)
+        self.runner.sig_speak.connect(self.on_speak)
+        self.runner.sig_listening.connect(
+            lambda: self.set_state("running", "Listening for keys and clicks — press Stop to end"))
         self.runner.sig_sound.connect(self.sound_bank.play)
         self.runner.sig_line.connect(editor.set_running_line)
         self.runner.sig_error.connect(self.on_error)
@@ -1211,9 +1436,13 @@ class MainWindow(QMainWindow):
         self.runner.sig_resumed.connect(self.on_resumed)
         if step:
             self.runner.step()
+        self.stage.set_mood("happy")
         self.set_running(True, stage=True)
         self.set_state("running", "Running…")
         self.runner.start()
+        if "when key" in source or 'key "' in source or "when clicked" in source \
+                or "when stage" in source or " clicked" in source:
+            self.stage.setFocus()      # keys go to the program
 
     def toggle_pause(self):
         if not (self.runner and self.runner.isRunning()):
@@ -1276,7 +1505,7 @@ class MainWindow(QMainWindow):
         self.proc.start(command, path.parent)
 
     def set_running(self, running, stage=False):
-        self.run_button.setText("Run")
+        self.run_button.setText(getattr(self, "run_label", "Run"))
         self.run_button.setEnabled(not running)
         self.stop_button.setEnabled(running)
         self.pause_button.setEnabled(running and stage)
@@ -1313,6 +1542,8 @@ class MainWindow(QMainWindow):
             self.set_state("error", "There's a problem — check the console")
 
     def stop_program(self):
+        self.speaker.stop()
+        self.arduino_panel.stop()
         if self.runner and self.runner.isRunning():
             self.runner.stop()
         if self.proc.is_running():
@@ -1328,6 +1559,29 @@ class MainWindow(QMainWindow):
         self.ask_input.setEnabled(True)
         self.ask_input.setFocus()
 
+    def on_choice(self, prompt, choices):
+        self.console_write("❓ " + prompt, self.palette_colors["sky"])
+        self.choice_bar.show_choices(choices)
+        self.ask_input.setEnabled(True)
+        self.ask_input.setPlaceholderText("click an answer, or type it (or its number)…")
+
+    def send_choice(self, choice):
+        if not (self.runner and self.runner.isRunning()):
+            return
+        self.console_write("✏️ " + choice, self.palette_colors["muted"])
+        self.ask_input.clear()
+        self.ask_input.setEnabled(False)
+        self.ask_input.setPlaceholderText("answers go here when a program asks…")
+        self.runner.answer(choice)
+
+    def on_speak(self, text):
+        volume = self.settings.value("volume", 80, type=int) / 100.0
+        if not self.speaker.say(text, volume):
+            self.console_write(f"🔊 {text}", self.palette_colors["muted"])
+            if not getattr(self, "_speak_warned", False):
+                self._speak_warned = True
+                self.toast("This computer has no voice for speak, so it's shown in the console.")
+
     def send_answer(self):
         text = self.ask_input.text()
         if self.proc.is_running():
@@ -1340,10 +1594,14 @@ class MainWindow(QMainWindow):
         self.console_write("✏️ " + text, self.palette_colors["muted"])
         self.ask_input.clear()
         self.ask_input.setEnabled(False)
+        self.choice_bar.hide()
+        self.ask_input.setPlaceholderText("answers go here when a program asks…")
         self.runner.answer(text)
 
     def on_error(self, message, line):
         self.last_error = message
+        self.stage.set_mood("oops")
+        self.choice_bar.hide()
         self.console_write(message, self.palette_colors["danger"])
         if line and self.run_editor is not None:
             self.run_editor.set_error_line(line)
@@ -1352,6 +1610,9 @@ class MainWindow(QMainWindow):
     def on_done(self, ok):
         self.set_running(False)
         self.ask_input.setEnabled(False)
+        self.choice_bar.hide()
+        if ok:
+            self.stage.set_mood("happy")
         editor = self.run_editor
         if editor is not None:
             QTimer.singleShot(600, lambda: editor.set_running_line(None))

@@ -1,0 +1,50 @@
+# Catch the star! A Sparky 3 game.
+# Click the stage, then use the left and right arrow keys.
+# Catch 10 stars to win. Your best time is saved for next time.
+
+backdrop "night"
+say "Catch 10 stars!" for 2 seconds
+pen up
+goto 0 -140
+size 120
+
+make sprite star with costume "star"
+set score to 0
+reset timer
+load "best star time" into best
+
+teach drop_star
+  tell star
+    goto random -200 to 200 180
+  end
+end
+
+do drop_star
+repeat until score = 10
+  if key "left" down then
+    goto xpos() - 7 ypos()
+  end
+  if key "right" down then
+    goto xpos() + 7 ypos()
+  end
+  tell star
+    goto xpos() ypos() - 4
+    if ypos() < -170 then
+      goto random -200 to 200 180
+    end
+  end
+  if touching star then
+    change score by 1
+    play "ding"
+    say "{score}!" for 0.3 seconds
+    do drop_star
+  end
+  next frame
+end
+
+set time to round(timer, 1)
+say "You did it in {time} seconds!"
+if best = 0 or time < best then
+  save time as "best star time"
+  say "A new best time: {time} seconds!"
+end

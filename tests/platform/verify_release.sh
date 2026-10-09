@@ -25,6 +25,11 @@ cp -R "$T/web" tests/mock_ai_server.py tests/platform/wine_test.sh "$W/"
   hdiutil verify build/release/Sparky-Installer.dmg 2>&1 | tail -1 | sed 's/.*is /dmg: /'
   codesign --verify --deep --strict dist/Sparky.app && echo "codesign: valid (ad-hoc)"
   .buildvenv/bin/python tests/ota_e2e.py dist/Sparky.app/Contents/MacOS/Sparky 2>&1 | grep -E "^(PASS|FAIL|OTA)"
+  echo "=== Python 3.10 (the oldest Python the Linux download supports)"
+  docker run --rm -v "$PWD:/src:ro" python:3.10-slim sh -c 'cd /src && for t in tests/test_lang.py \
+    tests/test_lang_v2.py tests/test_lang_v3.py tests/test_to_python.py; do \
+    PYTHONDONTWRITEBYTECODE=1 SPARKY_SKIP_ARDUINO_COMPILE=1 python -B $t 2>&1 | tail -1; done; \
+    PYTHONDONTWRITEBYTECODE=1 SPARKY_SKIP_ARDUINO_COMPILE=1 python -B tests/test_arduino.py 2>&1 | tail -1'
   echo "=== Linux arm64 / Debian 12"
   docker run --rm --platform linux/arm64 -v "$T:/t" debian:12 bash /t/linux_test.sh arm64 2>&1 | grep -v "^debconf"
   echo "=== Linux x86_64 / Ubuntu 22.04"

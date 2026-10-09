@@ -18,6 +18,7 @@ SPARKY_PHRASES = {"pen down", "pen up", "pen color", "pen size", "turn left",
                   "repeat until", "stop loop", "stop program", "else if",
                   "for each", "give back", "play note"}
 WORD_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+TEMPLATE_RE = re.compile(r"(?<!\{)\{[^{}]+\}(?!\})")
 NUMBER_RE = re.compile(r"\d+(\.\d+)?|\.\d+")
 
 
@@ -92,6 +93,10 @@ class CodeHighlighter(QSyntaxHighlighter):
                     while j < n and text[j] != ch:
                         j += 2 if text[j] == "\\" else 1
                     self.setFormat(i, min(j + 1, n) - i, fmt["string"])
+                    if lang.id == "sparky":
+                        # "Hi {name}!" — the part in braces is code
+                        for m in TEMPLATE_RE.finditer(text, i + 1, min(j, n)):
+                            self.setFormat(m.start(), m.end() - m.start(), fmt["word"])
                     i = j + 1
                     continue
                 if ch.isdigit() or (ch == "." and i + 1 < n and text[i + 1].isdigit()):

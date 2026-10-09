@@ -2,18 +2,20 @@
 # Sparky is case-insensitive (kids shouldn't fight the shift key),
 # comments start with #, and blocks are closed with the word "end".
 
+import unicodedata
+
 from .errors import SparkyError
 
 # Token kinds
 NUMBER = "NUMBER"
 STRING = "STRING"
 WORD = "WORD"      # keywords and variable names (lowercased)
-OP = "OP"          # + - * / ( ) [ ] , = > < >= <=
+OP = "OP"          # + - * / ( ) [ ] { } : , = > < >= <=
 NEWLINE = "NEWLINE"
 EOF = "EOF"
 
 TWO_CHAR_OPS = (">=", "<=")
-ONE_CHAR_OPS = "+-*/(),=><[]"
+ONE_CHAR_OPS = "+-*/(),=><[]{}:"
 
 # words after which a "-" is still an operator, not a negative number
 # (so "set x to -5" and "wait 2 - 1" both behave sensibly)
@@ -94,7 +96,7 @@ def tokenize(source):
                 and (tokens[-1].kind in (NUMBER, STRING)
                      or (tokens[-1].kind == WORD
                          and tokens[-1].value not in OPERATOR_WORDS)
-                     or (tokens[-1].kind == OP and tokens[-1].value in ")]"))):
+                     or (tokens[-1].kind == OP and tokens[-1].value in ")]}"))):
             start = i
             i += 1
             while i < n and (source[i].isdigit() or source[i] == "."):
@@ -123,7 +125,10 @@ def tokenize(source):
 
         if ch.isalpha() or ch == "_":
             start = i
-            while i < n and (source[i].isalnum() or source[i] == "_"):
+            # names can be in any alphabet: Hindi, Telugu and others need their
+            # vowel signs (combining marks) to stay part of the word
+            while i < n and (source[i].isalnum() or source[i] == "_"
+                             or unicodedata.category(source[i]) in ("Mn", "Mc")):
                 i += 1
             tokens.append(Token(WORD, source[start:i].lower(), line))
             continue
