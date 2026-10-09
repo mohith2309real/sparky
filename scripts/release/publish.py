@@ -17,8 +17,8 @@ import sys
 import urllib.request
 from pathlib import Path
 
-from common import (HF_BASE, HF_REPO, REPO, SITE, SITES, envelope, run, runtime,
-                    sha256, version)
+from common import (HF_BASE, HF_REPO, REPO, SITE, SITES, envelope, hf_token, run,
+                    runtime, sha256, version)
 import make_pack
 
 FULL_KINDS = {
@@ -31,7 +31,7 @@ FULL_KINDS = {
 
 def upload(local, remote):
     from huggingface_hub import HfApi
-    HfApi().upload_file(path_or_fileobj=str(local), path_in_repo=remote, repo_id=HF_REPO,
+    HfApi(token=hf_token()).upload_file(path_or_fileobj=str(local), path_in_repo=remote, repo_id=HF_REPO,
                         repo_type="space", commit_message=f"Sparky {version()}: {remote}")
     return HF_BASE + remote
 
@@ -50,7 +50,7 @@ def main():
     payload = {"product": "sparky", "channel": args.channel, "version": ver,
                "date": datetime.date.today().isoformat(),
                "notes": Path(args.notes).read_text(encoding="utf-8").strip(),
-               "notes_url": f"{SITE}/releases.html#v{ver}", "runtime": runtime()}
+               "notes_url": f"{SITE}/releases#v{ver}", "runtime": runtime()}
     if args.pack:
         pack = make_pack.build(REPO / "build" / "release" / "packs")
         url = HF_BASE + f"updates/{ver}/{pack.name}"

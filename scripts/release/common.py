@@ -17,6 +17,27 @@ HF_BASE = f"https://huggingface.co/spaces/{HF_REPO}/resolve/main/"
 SITE = "https://sparky-code.web.app"
 
 
+def hf_token():
+    """A saved Hugging Face token that can write to the downloads Space.
+    The active login may be scoped to another project, so check them all
+    (without switching which one is active)."""
+    from huggingface_hub import HfApi, get_token
+    from huggingface_hub.utils import get_stored_tokens
+    owner = HF_REPO.split("/")[0]
+    candidates = [get_token()] + list(get_stored_tokens().values())
+    for token in dict.fromkeys(t for t in candidates if t):
+        try:
+            auth = HfApi(token=token).whoami().get("auth", {}).get("accessToken", {})
+        except Exception:
+            continue
+        if auth.get("role") == "write":
+            return token
+        for scope in auth.get("fineGrained", {}).get("scoped", []):
+            if scope.get("entity", {}).get("name") == owner and "repo.write" in scope.get("permissions", []):
+                return token
+    raise SystemExit(f"No saved Hugging Face token can write to {HF_REPO}.")
+
+
 def version():
     text = (REPO / "sparky" / "__init__.py").read_text(encoding="utf-8")
     return re.search(r'__version__ = "([^"]+)"', text).group(1)
