@@ -55,7 +55,7 @@ def key_name(event):
 
 class StageModel:
     def __init__(self):
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()      # re-entrant: helpers may lock inside a locked block
         self.version = 0
         self.epoch = 0                 # bumps when drawings are wiped (the view rebuilds its cache)
         self.listening = False         # a program is running: keys and clicks become events

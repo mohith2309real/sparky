@@ -89,8 +89,35 @@ def ui_selfcheck(out):
     window.close()
 
 
+def arduino_selfcheck():
+    """Is Arduino support working here? Finds arduino-cli and compiles Blink
+    (written in Sparky words) for an Arduino Uno when that board is installed."""
+    import subprocess
+    import tempfile
+    from pathlib import Path
+    from .arduino.cli import ArduinoCLI, sketch_folder, size_summary
+    from .arduino.translate import to_arduino
+    cli = ArduinoCLI.find()
+    if cli is None:
+        return "arduino: no arduino-cli here (Sparky can download it from the Arduino panel)"
+    parts = [f"arduino-cli {cli.version()} from {cli.where()}"]
+    code = to_arduino("forever\n  pin 13 on\n  wait 0.5\n  pin 13 off\n  wait 0.5\nend\n")
+    folder, _ = sketch_folder(Path("blink.ino"), code, tempfile.mkdtemp())
+    result = subprocess.run(cli.compile_command(folder, "arduino:avr:uno"), capture_output=True,
+                            text=True, timeout=300)
+    if result.returncode == 0:
+        parts.append(f"Sparky blink compiles for Uno: {size_summary(result.stdout)}")
+    else:
+        parts.append("Uno boards not installed" if "platform not installed" in
+                     (result.stdout + result.stderr).lower() else "compile FAILED")
+    return " | ".join(parts)
+
+
 def main():
     args = sys.argv[1:]
+    if args[:2] == ["selfcheck", "arduino"]:
+        print(arduino_selfcheck())
+        return
     if args[:2] == ["selfcheck", "ui"]:
         ui_selfcheck(args[2] if len(args) > 2 else "sparky-selfcheck.png")
         return

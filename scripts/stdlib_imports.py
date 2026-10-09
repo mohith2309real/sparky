@@ -12,6 +12,6 @@ SKIP = {"tkinter", "turtle", "turtledemo", "idlelib", "test", "lib2to3", "ensure
         "_testlimitedcapi", "_testexternalinspection", "_testconsole", "_scproxy", "_android_support",
         "_ios_support", "_apple_support"}
 QT = ["PyQt6.QtSvg", "PyQt6.QtNetwork", "PyQt6.QtMultimedia", "PyQt6.QtTextToSpeech",
-      "PyQt6.QtPrintSupport"]
+      "PyQt6.QtPrintSupport", "PyQt6.QtSerialPort"]
 names = sorted(n for n in sys.stdlib_module_names if n not in SKIP and not n.startswith("_test"))
 print(" ".join(f"--hidden-import {n}" for n in names + QT))

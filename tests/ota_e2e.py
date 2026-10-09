@@ -134,6 +134,7 @@ expect("starts from the pack", run("selfcheck"), f"Sparky {TEST_VERSION}", f"run
 shot = work / "ui-from-pack.png"
 expect("IDE opens from the pack", run("selfcheck", "ui", str(shot)), f"Sparky {TEST_VERSION}",
        "lines drawn")
+expect("Arduino works from the pack", run("selfcheck", "arduino"), "arduino")
 
 data_dir = (home / "Library" / "Application Support" / "Sparky" if sys.platform == "darwin" else
             home / "AppData" / "Sparky" if "wine" in app[0] else home / ".state" / "sparky")
