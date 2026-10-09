@@ -9,7 +9,8 @@
 
 set -e
 cd "$(dirname "$0")/.."
-BUILD_PY="${BUILD_PY:-python3}"
+BUILD_PY="${BUILD_PY:-$PWD/.buildvenv/bin/python}"
+VERSION=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' sparky/__init__.py)
 PYVER=3.12.10
 OUT=build/windows
 rm -rf "$OUT"
@@ -24,7 +25,7 @@ echo "Fetching the AI helper's Claude SDK..."
   --python-version 3.12 --implementation cp -d "$OUT/wheels" anthropic certifi
 
 echo "Staging Sparky..."
-cp -R sparky assets examples extensions GUIDE.md "$OUT/stage/"
+cp -R sparky sparky_boot.py assets examples extensions GUIDE.md "$OUT/stage/"
 find "$OUT/stage" -name "__pycache__" -type d -prune -exec rm -rf {} +
 echo "Installed copy of Sparky (user files live in ~/Sparky)." > "$OUT/stage/sparky-installed.txt"
 [ -f assets/sparky.ico ] || .venv/bin/python scripts/make_ico.py
@@ -33,9 +34,9 @@ cp assets/sparky.ico "$OUT/sparky.ico"
 cat > "$OUT/installer.cfg" <<CFG
 [Application]
 name=Sparky
-version=2.0.0
+version=$VERSION
 publisher=Mohith
-entry_point=sparky.__main__:main
+entry_point=sparky_boot:main
 icon=sparky.ico
 console=false
 
@@ -44,6 +45,8 @@ version=$PYVER
 bitness=64
 
 [Include]
+packages=sparky
+    sparky_boot
 local_wheels=wheels/*.whl
 files=stage/assets > \$INSTDIR\\pkgs
     stage/examples > \$INSTDIR\\pkgs

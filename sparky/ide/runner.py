@@ -63,6 +63,8 @@ class RunnerThread(QThread):
     sig_line = pyqtSignal(int)          # line currently running
     sig_error = pyqtSignal(str, int)    # friendly message, line (0 = unknown)
     sig_done = pyqtSignal(bool)         # True if it finished without errors
+    sig_paused = pyqtSignal(int)        # paused (by Pause or Step) at this line
+    sig_resumed = pyqtSignal()
 
     def __init__(self, source, model, start_speed, parent=None):
         super().__init__(parent)
@@ -73,10 +75,43 @@ class RunnerThread(QThread):
         self.setStackSize(64 * 1024 * 1024)  # room for deep recursion
         self.interpreter = None
         self._stop = False
+        self._paused = False
+        self._stepping = False       # run to the next line, then pause again
+        self._pause_line = 0
 
     def stop(self):
         self._stop = True
+        self._paused = False
         self.runtime.answers.put(None)  # unblock a pending ask
+
+    def pause(self):
+        self._paused = True
+
+    def resume(self):
+        self._stepping = False
+        self._paused = False
+        self.sig_resumed.emit()
+
+    def step(self):
+        """Run until the next line starts, then pause there."""
+        self._stepping = True
+        self._paused = True
+
+    def is_paused(self):
+        return self._paused and not self._stepping
+
+    def wait_if_paused(self, line):
+        if not self._paused:
+            return
+        if self._stepping:
+            if line == self._pause_line:
+                return
+            self._stepping = False
+        self._pause_line = line
+        self.sig_line.emit(line)
+        self.sig_paused.emit(line)
+        while self._paused and not self._stepping and not self._stop:
+            time.sleep(0.02)
 
     def set_speed(self, value):
         if self.interpreter is not None:
@@ -115,6 +150,10 @@ class RunnerThread(QThread):
                 if self._stop:
                     break
                 line = tick[-1]
+                if self._paused:
+                    self.wait_if_paused(line)
+                    if self._stop:
+                        break
                 now = time.monotonic()
                 # highlight the running line, but don't flood the UI
                 if line != last_line and now - last_line_emit > 0.03:

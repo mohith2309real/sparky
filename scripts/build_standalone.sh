@@ -10,10 +10,13 @@ set -e
 cd "$(dirname "$0")/.."
 
 echo "Building standalone Sparky.app (this takes a minute)..."
+EXTRA=($(.venv/bin/python scripts/stdlib_imports.py))
 .venv/bin/pyinstaller --noconfirm --clean --windowed \
   --name Sparky \
   --paths . \
   --hidden-import anthropic \
+  --hidden-import sparky_boot \
+  "${EXTRA[@]}" \
   --collect-data certifi \
   --icon assets/sparky.icns \
   --osx-bundle-identifier io.github.mohith2309.sparky \
@@ -23,7 +26,10 @@ echo "Building standalone Sparky.app (this takes a minute)..."
   --add-data "GUIDE.md:." \
   scripts/sparky_entry.py
 
-echo "Zipping for release..."
+.venv/bin/python scripts/mac_plist.py dist/Sparky.app
+
+echo "Zipping for release (this zip is also the Mac over-the-air full update)..."
+rm -f dist/Sparky-macOS.zip
 ditto -c -k --keepParent dist/Sparky.app dist/Sparky-macOS.zip
 
 echo "Building the drag-to-Applications installer..."

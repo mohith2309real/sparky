@@ -11,7 +11,10 @@
 #    the code and data sit in a folder the user may not be allowed to
 #    write to, marked by a `sparky-installed.txt` file next to the code.
 #
-# In cases 2 and 3 the writable folders move to a friendly ~/Sparky
+# 4. Running from an update pack (see sparky_boot.py): the pack folder holds
+#    the code and the read-only data, and has a pack.json next to them.
+#
+# In cases 2, 3 and 4 the writable folders move to a friendly ~/Sparky
 # folder, so the installed app itself never changes.
 
 import shutil
@@ -21,12 +24,14 @@ from pathlib import Path
 FROZEN = getattr(sys, "frozen", False)
 _CODE_ROOT = Path(__file__).resolve().parent.parent
 
-if FROZEN:
+PACK = (_CODE_ROOT / "pack.json").exists()
+
+if FROZEN and not PACK:
     RESOURCES = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
 else:
     RESOURCES = _CODE_ROOT
 
-INSTALLED = FROZEN or (_CODE_ROOT / "sparky-installed.txt").exists()
+INSTALLED = FROZEN or PACK or (_CODE_ROOT / "sparky-installed.txt").exists()
 USER_DIR = Path.home() / "Sparky" if INSTALLED else _CODE_ROOT
 
 ASSETS_DIR = RESOURCES / "assets"

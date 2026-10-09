@@ -11,7 +11,7 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
-BUILD_PY="${BUILD_PY:-python3}"
+BUILD_PY="${BUILD_PY:-$PWD/.buildvenv/bin/python}"
 OUT=build/linux
 rm -rf "$OUT"
 mkdir -p "$OUT"
@@ -56,7 +56,7 @@ build_arch() {
   for w in "$wheels"/*.whl; do
     "$BUILD_PY" -m zipfile -e "$w" "$pkg/app/"
   done
-  cp -R sparky assets examples extensions GUIDE.md "$pkg/app/"
+  cp -R sparky sparky_boot.py assets examples extensions GUIDE.md "$pkg/app/"
   find "$pkg/app/sparky" -name "__pycache__" -type d -prune -exec rm -rf {} +
   echo "Installed copy of Sparky (user files live in ~/Sparky)." > "$pkg/app/sparky-installed.txt"
   cp assets/logo_256.png "$pkg/sparky.png"
@@ -80,7 +80,8 @@ if [ -n "${WAYLAND_DISPLAY:-}" ] && [ -z "${QT_QPA_PLATFORM:-}" ]; then
   export QT_QPA_PLATFORM="wayland;xcb"
 fi
 export PYTHONPATH="$HERE/app${PYTHONPATH:+:$PYTHONPATH}"
-exec "$PY" -m sparky "$@"
+# run the file itself, so a "sparky" folder in the current directory can't shadow the app
+exec "$PY" "$HERE/app/sparky_boot.py" "$@"
 RUN
 
   cat > "$pkg/install.sh" <<'INST'

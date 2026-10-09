@@ -41,48 +41,48 @@ the lessons, the installers and the app icon all share the same design system.
 
 ### A. Updates and signing (1–18)
 
-- [ ] 1. **Release signing key.** Sparky gets its own Ed25519 signing key. The private half stays on Mohith's Mac and is never uploaded.
-- [ ] 2. **Signed downloads.** Every release ships `SHA256SUMS.txt` plus a signature file, and the public key is published on the website.
-- [ ] 3. **Signed update manifests.** `stable.json` and `beta.json` on sparky-code.web.app list the newest version, its files and their hashes, signed with the release key.
-- [ ] 4. **Automatic update checks.** Quietly at launch, then every 6 hours while Sparky is open.
-- [ ] 5. **Background downloads.** Updates download while you keep coding, with progress in the status bar.
-- [ ] 6. **"Restart to update" bar,** like Windows and VS Code, with Later and What's new buttons.
-- [ ] 7. **Small code-pack updates.** Most updates are a few MB, because Python and Qt don't need to download again.
-- [ ] 8. **Full updates when needed.** When the runtime changes, the Mac app swaps itself, Windows runs the new installer silently, Linux replaces its folder, and Sparky relaunches.
-- [ ] 9. **Double-checked updates.** The manifest must carry a valid Ed25519 signature, and every file must match its SHA-256, or nothing gets installed.
-- [ ] 10. **Automatic rollback.** If a new version can't start, Sparky goes back to the last version that worked and tells you.
-- [ ] 11. **Update channels:** Stable and Beta.
-- [ ] 12. **Settings → Updates:** current version, last check, Check now, auto-download on/off, channel, Skip this version.
-- [ ] 13. **What's new window** after an update, with the release notes.
-- [ ] 14. **Update history:** which versions were installed and when.
-- [ ] 15. **Offline-friendly.** No errors or nagging without internet.
-- [ ] 16. **Proper version info** in macOS (Get Info) and in the Windows installer and app list.
-- [ ] 17. **`sparky selfcheck` covers updates:** it verifies the signature code and the update folder.
+- [x] 1. **Release signing key.** Sparky gets its own Ed25519 signing key. The private half stays on Mohith's Mac and is never uploaded.
+- [x] 2. **Signed downloads.** Every release ships `SHA256SUMS.txt` plus a signature file, and the public key is published on the website.
+- [x] 3. **Signed update manifests.** `stable.json` and `beta.json` on sparky-code.web.app list the newest version, its files and their hashes, signed with the release key.
+- [x] 4. **Automatic update checks.** Quietly at launch, then every 6 hours while Sparky is open.
+- [x] 5. **Background downloads.** Updates download while you keep coding, with progress in the status bar.
+- [x] 6. **"Restart to update" bar,** like Windows and VS Code, with Later and What's new buttons.
+- [x] 7. **Small code-pack updates.** Most updates are a few MB, because Python and Qt don't need to download again.
+- [x] 8. **Full updates when needed.** When the runtime changes, the Mac app swaps itself, Windows runs the new installer silently, Linux replaces its folder, and Sparky relaunches. *(Mac and Linux tested end to end; the Windows installer step can't run under Wine, so it is tested when a real Windows PC is available.)*
+- [x] 9. **Double-checked updates.** The manifest must carry a valid Ed25519 signature, and every file must match its SHA-256, or nothing gets installed.
+- [x] 10. **Automatic rollback.** If a new version can't start, Sparky goes back to the last version that worked and tells you.
+- [x] 11. **Update channels:** Stable and Beta.
+- [x] 12. **Settings → Updates:** current version, last check, Check now, auto-download on/off, channel, Skip this version.
+- [x] 13. **What's new window** after an update, with the release notes.
+- [x] 14. **Update history:** which versions were installed and when.
+- [x] 15. **Offline-friendly.** No errors or nagging without internet.
+- [x] 16. **Proper version info** in macOS (Get Info) and in the Windows installer and app list.
+- [x] 17. **`sparky selfcheck` covers updates:** it verifies the signature code and the update folder.
 - [ ] 18. **Signed news and featured-projects feeds** for the Home screen.
 
 ### B. The new look (19–42)
 
 - [ ] 19. **Spark 3 design tokens** for color, spacing, radius and type, shared by the app, website and docs.
-- [ ] 20. **Bundled fonts:** Bricolage Grotesque, Figtree and JetBrains Mono on every OS.
-- [ ] 21. **Custom line icons** replace the emoji in the toolbar, activity bar and menus.
+- [x] 20. **Bundled fonts:** Bricolage Grotesque, Figtree and JetBrains Mono on every OS.
+- [x] 21. **Custom line icons** replace the emoji in the toolbar, activity bar and menus.
 - [ ] 22. **Home screen:** recent projects with thumbnails, continue learning, templates, examples, news.
-- [ ] 23. **New top bar:** big Run / Stop / Step buttons, project name, and a turtle-to-rabbit speed slider.
+- [x] 23. **New top bar:** big Run / Stop / Step buttons, project name, and a turtle-to-rabbit speed slider.
 - [ ] 24. **New activity bar** with icon buttons, tooltips and badges.
-- [ ] 25. **Stage card:** a rounded stage with its own toolbar (fullscreen, grid, snapshot, clear).
+- [x] 25. **Stage card:** a rounded stage with its own toolbar (fullscreen, grid, snapshot, clear).
 - [ ] 26. **Console 2.0:** says, questions, answers, errors and info each get their own color and icon, plus Copy and Clear.
-- [ ] 27. **Status bar 2.0:** run state, cursor, language, update pill, "by Mohith".
-- [ ] 28. **Settings window redesign:** sections in a sidebar (General, Editor, Stage, Sounds, Languages, AI, Updates, Accessibility, Classroom).
+- [x] 27. **Status bar 2.0:** run state, cursor, language, update pill, "by Mohith".
+- [x] 28. **Settings window redesign:** sections in a sidebar (General, Editor, Stage, Sounds, Languages, AI, Updates, Accessibility, Classroom). *(Classroom arrives with section M.)*
 - [ ] 29. **Learn window redesign:** a map of worlds and lessons with your stars.
 - [ ] 30. **Redesigned dialogs:** Welcome, About, Community, Make an App, Extensions.
-- [ ] 31. **Four built-in themes:** Daylight, Midnight, Candy and High Contrast (VS Code themes still work).
+- [x] 31. **Four built-in themes:** Daylight, Midnight, Candy and High Contrast (VS Code themes still work).
 - [ ] 32. **Motion:** short animations for panels, buttons and toasts, respecting Reduce Motion.
-- [ ] 33. **Toasts** replace pop-up boxes for small messages like "Saved".
+- [x] 33. **Toasts** replace pop-up boxes for small messages like "Saved".
 - [ ] 34. **Friendly empty states** with the mascot, instead of blank panels.
-- [ ] 35. **Sparky mascot redrawn** in vector, with moods: happy, thinking, oops and wow.
+- [x] 35. **Sparky mascot redrawn** in vector, with moods: happy, thinking, oops and wow.
 - [ ] 36. **New app icon** on Mac, Windows and Linux.
-- [ ] 37. **Kid mode and Pro mode:** Kid mode hides advanced panels, Pro mode shows everything.
-- [ ] 38. **UI scale** from 90% to 150%.
-- [ ] 39. **Native macOS menu bar** (File, Edit, View, Run, Learn, Help) and the same menus on Windows and Linux.
+- [x] 37. **Kid mode and Pro mode:** Kid mode hides advanced panels, Pro mode shows everything.
+- [x] 38. **UI scale** from 90% to 150%.
+- [x] 39. **Native macOS menu bar** (File, Edit, View, Run, Learn, Help) and the same menus on Windows and Linux.
 - [ ] 40. **New website design** for sparky-code.web.app.
 - [ ] 41. **New downloads page** with OS detection, checksums and signature info.
 - [ ] 42. **New brand board, DMG window art and installer branding.**
@@ -209,7 +209,7 @@ the lessons, the installers and the app icon all share the same design system.
 - [ ] 148. **Glossary** of coding words in kid language.
 - [ ] 149. **Searchable language reference.**
 - [ ] 150. **Explain this line** (offline, no AI).
-- [ ] 151. **Guided tour** of the app on first launch.
+- [ ] 151. **Interactive tour** of everything in Sparky: it spotlights the real buttons and waits for you to do each step (type code, press Run, click a block, use the stage tools, open Learn, the AI helper, settings and updates). Runs on first launch, and anytime from Help → Take the tour. You can skip, go back, or replay one part.
 - [ ] 152. **Try it** buttons open lesson code in a new tab.
 - [ ] 153. **Progress report** for parents and teachers (HTML).
 - [ ] 154. **Python track:** lessons that move from Sparky to real Python, side by side.
@@ -297,13 +297,13 @@ the lessons, the installers and the app icon all share the same design system.
 
 ### N. App quality and platforms (218–226)
 
-- [ ] 218. **Crash reporter:** a friendly window with details you can copy, and a log file.
-- [ ] 219. **Safe mode** (`--safe`): starts without extensions or updates.
-- [ ] 220. **Logs folder** and an "Open logs" command.
+- [x] 218. **Crash reporter:** a friendly window with details you can copy, and a log file.
+- [x] 219. **Safe mode** (`--safe`): starts without extensions or updates.
+- [x] 220. **Logs folder** and an "Open logs" command.
 - [ ] 221. **Faster startup:** panels load when first opened.
-- [ ] 222. **One window:** opening a file while Sparky runs uses the open window.
+- [x] 222. **One window:** opening a file while Sparky runs uses the open window.
 - [ ] 223. **Portable Windows version** (a zip, no install).
-- [ ] 224. **Diagnostics page:** versions, folders, update channel.
+- [x] 224. **Diagnostics page:** versions, folders, update channel.
 - [ ] 225. **Sparky Player** gets the new stage, sprites and events.
 - [ ] 226. **Intel Mac build** *(later: needs a universal Python build; Apple-silicon only for now)*.
 

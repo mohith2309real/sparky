@@ -15,3 +15,6 @@ vscode-extensions/
 
 # promo videos and their render workspaces (large media, kept locally)
 brag-output*/
+
+# release/build tools (pynsist, huggingface_hub, cryptography)
+.buildvenv/
