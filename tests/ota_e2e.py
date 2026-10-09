@@ -116,7 +116,7 @@ def run(*args, extra=None):
     result = subprocess.run(app + list(args), env=dict(env, **(extra or {})), capture_output=True,
                             text=True, timeout=180)
     lines = [l for l in (result.stdout + result.stderr).splitlines()
-             if "Sparky" in l or "Qt " in l or "Error" in l or "Traceback" in l]
+             if "Sparky" in l or "Qt " in l or "Error" in l or "Traceback" in l or "arduino" in l]
     return "\n".join(lines[-3:])
 
 

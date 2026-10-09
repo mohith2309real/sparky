@@ -108,7 +108,7 @@ def arduino_selfcheck():
     if result.returncode == 0:
         parts.append(f"Sparky blink compiles for Uno: {size_summary(result.stdout)}")
     else:
-        parts.append("Uno boards not installed" if "platform not installed" in
+        parts.append("Uno boards aren't installed here (Boards → Arduino AVR)" if "platform not installed" in
                      (result.stdout + result.stderr).lower() else "compile FAILED")
     return " | ".join(parts)
 

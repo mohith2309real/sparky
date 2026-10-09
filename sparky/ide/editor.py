@@ -17,7 +17,7 @@ from .theme import CODE_FONTS
 SPARKY_PHRASES = {"pen down", "pen up", "pen color", "pen size", "turn left",
                   "repeat until", "stop loop", "stop program", "else if",
                   "for each", "give back", "play note"}
-WORD_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+WORD_RE = re.compile(r"[^\W\d]\w*")      # any alphabet (names can be Hindi, Telugu...)
 TEMPLATE_RE = re.compile(r"(?<!\{)\{[^{}]+\}(?!\})")
 NUMBER_RE = re.compile(r"\d+(\.\d+)?|\.\d+")
 
