@@ -171,6 +171,7 @@ class Thread:
         self.sprite = sprite
         self.handler = handler
         self.frames = []
+        self.calls = []           # (command name, line it was called from) — the call stack
         self.wake = 0.0
         self.done = False
 
@@ -200,6 +201,8 @@ class Interpreter:
         self.last_frame = None
         self.used_files = set()
         self.top_layer = 0
+        self.calls = []                    # the running thread's call stack
+        self.break_lines = frozenset()     # breakpoints: pause before these lines
 
     # Sparky 2 code (and the IDE) read these straight off the interpreter;
     # they belong to whichever sprite is being told what to do.
@@ -211,6 +214,42 @@ class Interpreter:
     pen_size = _sprite_attr("pen_size")
     visible = _sprite_attr("visible")
     scale = _sprite_attr("scale")
+
+    # ---------- for the debugger ----------
+
+    def snapshot(self):
+        """Variables, the call stack and sprites, copied for the Debug panel.
+        Called from the window while the program runs, so it copies carefully."""
+        for _ in range(3):
+            try:
+                frames = [dict(f) for f in self.frames]
+                return {"globals": dict(self.globals),
+                        "locals": frames[-1] if frames else {},
+                        "calls": list(self.calls),
+                        "sprites": {n: s.snapshot() for n, s in list(self.sprites.items())},
+                        "threads": sum(1 for t in self.threads if not t.done)}
+            except RuntimeError:          # changed size while copying: try again
+                continue
+        return None
+
+    def watch(self, text):
+        """Evaluate a watch expression (like x * 2) without running any commands."""
+        from .parser import Parser
+        parser = Parser(text)
+        node = parser.parse_expression()
+        if self.has_call(node):
+            raise SparkyError("Watches can't call your commands (they might change things).", None)
+        return self.eval_now(node)
+
+    def has_call(self, node):
+        if isinstance(node, A.Call) and node.name in self.functions:
+            return True
+        for value in vars(node).values():
+            if isinstance(value, A.Node) and self.has_call(value):
+                return True
+            if isinstance(value, list) and any(isinstance(v, A.Node) and self.has_call(v) for v in value):
+                return True
+        return False
 
     # ---------- variables ----------
 
@@ -599,6 +638,7 @@ class Interpreter:
             raise SparkyError(f'"{func.name}" called itself too many times '
                               "and got dizzy!", line)
         self.frames.append(dict(zip(func.params, args)))
+        self.calls.append((func.name, line))
         try:
             yield from self.run_block(func.body)
         except ReturnValue as result:
@@ -607,6 +647,8 @@ class Interpreter:
             pass
         finally:
             self.frames.pop()
+            if self.calls:
+                self.calls.pop()
         return None
 
     # ---------- running ----------
@@ -679,6 +721,7 @@ class Interpreter:
         """Run one thread until it yields a tick. None when it has finished."""
         self.current = thread
         self.frames = thread.frames
+        self.calls = thread.calls
         self.sprite = thread.sprite
         try:
             return next(thread.gen)
@@ -723,6 +766,8 @@ class Interpreter:
             yield from self.execute(stmt)
 
     def execute(self, stmt):
+        if stmt.line in self.break_lines:
+            yield ("break", stmt.line)          # a breakpoint: the runner pauses here
         kind = type(stmt).__name__
         method = getattr(self, f"exec_{kind}", None)
         if method is None:

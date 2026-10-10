@@ -11,21 +11,26 @@
 import datetime
 import html
 import os
+import re
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from PyQt6.QtCore import QEvent, Qt, QSettings, QTimer, QUrl
 from PyQt6.QtGui import (QAction, QActionGroup, QColor, QDesktopServices, QFont,
                          QGuiApplication, QIcon, QKeySequence, QShortcut, QTextCharFormat,
                          QTextCursor)
-from PyQt6.QtWidgets import (QApplication, QFileDialog, QHBoxLayout, QInputDialog, QLabel,
-                             QLineEdit, QMainWindow, QMenu, QMessageBox, QPlainTextEdit,
-                             QSplitter, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (QApplication, QComboBox, QFileDialog, QHBoxLayout, QInputDialog,
+                             QLabel, QLineEdit, QMainWindow, QMenu, QMessageBox, QPlainTextEdit,
+                             QSlider, QSplitter, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
 from .. import __version__
-from . import design, icons, languages, mascot, prefs, vscode, whats_new
+from . import code_tools, design, icons, languages, mascot, prefs, vscode, whats_new
 from .ai import AIPanel
+from .code_panels import FindInFilesDialog, OutlinePanel
+from .debug_panel import ConsoleView, DebugPanel
+from . import docs
 from .arduino_panel import ArduinoPanel, SerialCard
 from .blocks import BlockPalette
 from .dialogs import (AboutDialog, CommunityDialog, FirstRunDialog, WhatsNewDialog,
@@ -72,6 +77,8 @@ say "Now you try!"
 '''
 
 SIDEBAR = [("blocks", "blocks", "Blocks"), ("files", "files", "Files"),
+           ("outline", "outline", "Outline: jump to your commands"),
+           ("debug", "bug", "Debug: variables, breakpoints, run history"),
            ("extensions", "extensions", "Extensions"), ("ai", "ai", "AI helper"),
            ("arduino", "chip", "Arduino: boards, upload, Serial Monitor")]
 
@@ -85,7 +92,7 @@ void loop() {
 
 }
 """
-PRO_ONLY = {"files", "extensions"}
+PRO_ONLY = {"files", "extensions", "outline"}
 MAX_RECENT = 12
 
 
@@ -155,6 +162,18 @@ class MainWindow(QMainWindow):
         self.stage_model = StageModel()
         self.speaker = Speaker()
         self.turbo_saved = None
+        self.live_mode = False
+        self.live_timer = QTimer(self)
+        self.live_timer.setSingleShot(True)
+        self.live_timer.setInterval(800)
+        self.live_timer.timeout.connect(self.live_run)
+        self.trail_timer = QTimer(self)
+        self.trail_timer.timeout.connect(self.fade_trail)
+        self.replay_frames = []
+        self.replay_timer = QTimer(self)
+        self.replay_timer.timeout.connect(self.record_frame)
+        self.run_started = 0.0
+        self.last_stats = None
         self.build_ui()
         self.build_menus()
         self.toasts = Toasts(self)
@@ -259,6 +278,7 @@ class MainWindow(QMainWindow):
 
     def build_activity_bar(self):
         bar = QWidget()
+        self.activity_bar = bar
         bar.setObjectName("ActivityBar")
         bar.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         layout = QVBoxLayout(bar)
@@ -291,11 +311,13 @@ class MainWindow(QMainWindow):
         self.extensions_panel = ExtensionsPanel(self)
         self.arduino_panel = ArduinoPanel(self)
         self.arduino_panel.message.connect(lambda text: self.toast(text, 3000))
+        self.outline_panel = OutlinePanel(self)
+        self.debug_panel = DebugPanel(self)
         self.sidebar = QStackedWidget()
         self.sidebar.setObjectName("SidePanel")
         self.sidebar.setMinimumWidth(230)
-        for widget in (self.blocks, self.files_panel, self.extensions_panel, self.ai_panel,
-                       self.arduino_panel):
+        for widget in (self.blocks, self.files_panel, self.outline_panel, self.debug_panel,
+                       self.extensions_panel, self.ai_panel, self.arduino_panel):
             self.sidebar.addWidget(widget)
 
         center = QWidget()
@@ -311,7 +333,11 @@ class MainWindow(QMainWindow):
         self.tabs.setMovable(True)
         self.tabs.tabCloseRequested.connect(self.close_tab)
         self.tabs.currentChanged.connect(self.tab_changed)
-        center_layout.addWidget(self.tabs, 1)
+        self.editor_split = QSplitter(Qt.Orientation.Horizontal)
+        self.editor_split.setChildrenCollapsible(False)
+        self.editor_split.addWidget(self.tabs)
+        self.split_view = None
+        center_layout.addWidget(self.editor_split, 1)
 
         right = QWidget()
         right.setObjectName("SidePanel")
@@ -386,6 +412,21 @@ class MainWindow(QMainWindow):
         self.stage_tools = tools
         card.add_tool(tools)
         card.body.addWidget(self.stage, 1)
+        self.replay_row = QWidget()
+        replay_layout = QHBoxLayout(self.replay_row)
+        replay_layout.setContentsMargins(4, 4, 4, 0)
+        replay_label = QLabel("Replay")
+        replay_label.setObjectName("FieldLabel")
+        replay_layout.addWidget(replay_label)
+        self.replay_slider = QSlider(Qt.Orientation.Horizontal)
+        self.replay_slider.setToolTip("Drag to watch the last run again")
+        self.replay_slider.valueChanged.connect(self.replay_to)
+        replay_layout.addWidget(self.replay_slider, 1)
+        self.replay_time = QLabel("")
+        self.replay_time.setObjectName("FileLabel")
+        replay_layout.addWidget(self.replay_time)
+        self.replay_row.hide()
+        card.body.addWidget(self.replay_row)
         self.sprites_panel = SpritesPanel(self.stage_model)
         self.sprites_panel.hide()
         card.body.addWidget(self.sprites_panel)
@@ -400,12 +441,19 @@ class MainWindow(QMainWindow):
                                       self.toast("Console copied ✓")))
         clear = IconButton("trash", "Clear the console", size=16)
         clear.clicked.connect(lambda: self.console.clear())
+        self.console_filter = QComboBox()
+        self.console_filter.addItem("Everything", "all")
+        self.console_filter.addItem("What it said", "say")
+        self.console_filter.addItem("Problems", "problems")
+        self.console_filter.setToolTip("Show everything, only what the program said, or only problems")
+        self.console_filter.currentIndexChanged.connect(
+            lambda: self.console.set_filter(self.console_filter.currentData()))
+        card.add_tool(self.console_filter)
         card.add_tool(copy)
         card.add_tool(clear)
-        self.console = QPlainTextEdit()
-        self.console.setObjectName("Console")
-        self.console.setReadOnly(True)
-        self.console.setAccessibleName("Console")
+        self.console = ConsoleView()
+        self.console.line_clicked.connect(self.console_line_clicked)
+        self.console.lesson_clicked.connect(self.open_lesson)
         card.body.addWidget(self.console, 1)
         self.choice_bar = ChoiceBar()
         self.choice_bar.chosen.connect(self.send_choice)
@@ -427,6 +475,10 @@ class MainWindow(QMainWindow):
         self.status = self.statusBar()
         self.state_pill = Pill("Ready")
         self.status.addWidget(self.state_pill)
+        self.crumbs = QLabel("")
+        self.crumbs.setObjectName("FileLabel")
+        self.crumbs.setToolTip("Where the cursor is: the blocks around it")
+        self.status.addWidget(self.crumbs)
         self.coords_label = QLabel("")
         self.coords_label.setObjectName("FileLabel")
         self.status.addPermanentWidget(self.coords_label)
@@ -492,6 +544,7 @@ class MainWindow(QMainWindow):
         act(file_menu, "Save", self.save_file, "Ctrl+S")
         act(file_menu, "Save as…", self.save_as, "Ctrl+Shift+S")
         file_menu.addSeparator()
+        act(file_menu, "Export as colored HTML…", self.export_html)
         act(file_menu, "Make an App…", lambda: make_app(self))
         act(file_menu, "Community and gallery…", lambda: CommunityDialog(self).exec())
         file_menu.addSeparator()
@@ -512,6 +565,22 @@ class MainWindow(QMainWindow):
         act(edit, "Find and replace", lambda: self.find_bar.open(True))
         act(edit, "Go to line…", self.go_to_line)
         act(edit, "Toggle comment", lambda: self.editor.toggle_comment())
+        edit.addSeparator()
+        act(edit, "Rename everywhere…", self.rename_symbol, "F2")
+        act(edit, "Format (fix indentation)", self.format_document, "Shift+Alt+F")
+        act(edit, "Go to definition", lambda: self.editor and self.editor.go_to_definition(
+            self.editor.current_word()), "F12")
+        act(edit, "Select next match", lambda: self.editor.select_next_match())
+        act(edit, "Duplicate line", lambda: self.editor.duplicate_line())
+        act(edit, "Move line up", lambda: self.editor.move_lines(-1))
+        act(edit, "Move line down", lambda: self.editor.move_lines(1))
+        edit.addSeparator()
+        act(edit, "Fold all", lambda: self.fold_all(True))
+        act(edit, "Unfold all", lambda: self.fold_all(False))
+        act(edit, "Toggle bookmark", self.toggle_bookmark, "Ctrl+Alt+K")
+        act(edit, "Next bookmark", lambda: self.next_bookmark(1), "Ctrl+Alt+L")
+        act(edit, "Previous bookmark", lambda: self.next_bookmark(-1), "Ctrl+Alt+J")
+        act(edit, "Find in all files…", self.find_in_files, "Ctrl+Shift+F")
 
         view = bar.addMenu("&View")
         act(view, "Home", self.show_home)
@@ -520,6 +589,15 @@ class MainWindow(QMainWindow):
         act(view, "Extensions", lambda: self.show_sidebar_named("extensions"), key="view_extensions")
         act(view, "AI helper", lambda: self.show_sidebar_named("ai"))
         act(view, "Arduino", lambda: self.show_sidebar_named("arduino"))
+        act(view, "Outline", lambda: self.show_sidebar_named("outline"), key="view_outline")
+        act(view, "Debug", lambda: self.show_sidebar_named("debug"))
+        view.addSeparator()
+        act(view, "Split editor", self.toggle_split, "Ctrl+\\")
+        act(view, "Minimap", lambda: self.toggle_view_option("minimap"))
+        act(view, "Word wrap", lambda: self.toggle_view_option("word_wrap"), "Alt+Z")
+        act(view, "Show spaces", lambda: self.toggle_view_option("show_spaces"))
+        act(view, "Zen mode", self.toggle_zen, "Ctrl+Alt+Z")
+        act(view, "Live mode (re-run as you type)", self.toggle_live)
         act(view, "Toggle sidebar", self.toggle_sidebar)
         view.addSeparator()
         themes = view.addMenu("Theme")
@@ -551,6 +629,8 @@ class MainWindow(QMainWindow):
         act(run, "Step", self.step_program)
         act(run, "Stop", self.stop_program)
         run.addSeparator()
+        act(run, "Run selected lines", self.run_selection, "Ctrl+Shift+Return")
+        act(run, "Toggle breakpoint", self.toggle_breakpoint, "F9")
         act(run, "Show as Python", self.show_as_python)
         run.addSeparator()
         act(run, "Arduino: Verify", lambda: self.arduino_panel.build(upload=False), "Ctrl+R")
@@ -676,6 +756,14 @@ class MainWindow(QMainWindow):
         editor.document().modificationChanged.connect(
             lambda _=False, e=editor: self.update_tab_title(e))
         editor.cursorPositionChanged.connect(self.update_cursor_label)
+        editor.cursorPositionChanged.connect(self.update_breadcrumbs)
+        editor.textChanged.connect(self.live_timer.start)
+        editor.scrubbed.connect(lambda: self.live_run(force=True))
+        editor.breakpoints_changed.connect(self.breakpoints_changed)
+        editor.problem_changed.connect(self.problem_changed)
+        editor.set_minimap(self.settings.value("minimap", False, type=bool))
+        editor.set_word_wrap(self.settings.value("word_wrap", False, type=bool))
+        editor.set_show_spaces(self.settings.value("show_spaces", False, type=bool))
         index = self.tabs.addTab(editor, editor.display_name())
         self.tabs.setTabToolTip(index, str(path) if path else editor.display_name())
         self.tabs.setCurrentIndex(index)
@@ -714,6 +802,8 @@ class MainWindow(QMainWindow):
         self.stage_card.setVisible(stage_lang)
         self.run_label = "Upload" if board else "Run"
         self.blocks.set_language(lang.id)
+        self.outline_panel.watch(editor)
+        self.update_breadcrumbs()
         self.run_button.setText(self.run_label)
         self.arduino_panel.restore_board()
         self.speed.setEnabled(stage_lang)
@@ -963,6 +1053,26 @@ class MainWindow(QMainWindow):
             ("Stage: turbo (draw instantly)", "", lambda: self.turbo_button.toggle()),
             ("Pick a costume…", "", self.pick_costume),
             ("New Arduino sketch", "", self.new_sketch),
+            ("Rename everywhere", "F2", self.rename_symbol),
+            ("Format document (fix indentation)", "Shift+Alt+F", self.format_document),
+            ("Go to definition", "F12", lambda: self.editor and self.editor.go_to_definition(
+                self.editor.current_word())),
+            ("Find in all files", "Ctrl/Cmd+Shift+F", self.find_in_files),
+            ("Split editor", "Ctrl/Cmd+\\", self.toggle_split),
+            ("Toggle minimap", "", lambda: self.toggle_view_option("minimap")),
+            ("Toggle word wrap", "Alt+Z", lambda: self.toggle_view_option("word_wrap")),
+            ("Toggle show spaces", "", lambda: self.toggle_view_option("show_spaces")),
+            ("Zen mode", "Ctrl/Cmd+Alt+Z", self.toggle_zen),
+            ("Live mode: re-run as you type", "", self.toggle_live),
+            ("Fold all", "", lambda: self.fold_all(True)),
+            ("Unfold all", "", lambda: self.fold_all(False)),
+            ("Toggle bookmark", "Ctrl/Cmd+Alt+K", self.toggle_bookmark),
+            ("Next bookmark", "Ctrl/Cmd+Alt+L", lambda: self.next_bookmark(1)),
+            ("Toggle breakpoint", "F9", self.toggle_breakpoint),
+            ("Run selected lines", "Ctrl/Cmd+Shift+Enter", self.run_selection),
+            ("Debug: variables and breakpoints", "", lambda: self.show_sidebar_named("debug")),
+            ("Outline", "", lambda: self.show_sidebar_named("outline")),
+            ("Export as colored HTML", "", self.export_html),
             ("Arduino: verify (compile)", "Ctrl/Cmd+R", lambda: self.arduino_panel.build(upload=False)),
             ("Arduino: upload to the board", "Ctrl/Cmd+U", lambda: self.arduino_panel.build(upload=True)),
             ("Arduino: Serial Monitor", "Ctrl/Cmd+Shift+M", lambda: self.show_serial("monitor")),
@@ -1088,6 +1198,14 @@ class MainWindow(QMainWindow):
         self.snippet_cache = {}
         for editor in self.editors():
             editor.snippets = self.snippets(editor.language.id)
+
+    def update_breadcrumbs(self):
+        editor = self.editor
+        if editor is None or editor.language.id != "sparky":
+            self.crumbs.setText("")
+            return
+        trail = code_tools.breadcrumbs(editor.lines(), editor.textCursor().blockNumber() + 1)
+        self.crumbs.setText("  ›  ".join(trail))
 
     def update_cursor_label(self):
         editor = self.tabs.currentWidget()
@@ -1280,6 +1398,7 @@ class MainWindow(QMainWindow):
         self.set_reduce_motion(s.value("reduce_motion", False, type=bool))
         self.set_grid(s.value("stage_grid", False, type=bool))
         self.set_arrows(s.value("stage_arrows", False, type=bool))
+        self.live_mode = s.value("live_mode", False, type=bool)
         self.apply_stage_color()
         geometry = s.value("geometry")
         if geometry is not None:
@@ -1355,13 +1474,25 @@ class MainWindow(QMainWindow):
 
     # ---------- console ----------
 
-    def console_write(self, text, color=None):
-        style = f' style="color:{color}"' if color else ""
-        # keep line breaks and indents (errors show "You wrote / Try this" on their own lines)
-        body = html.escape(text).replace("  ", "&nbsp; ").replace("\n", "<br>")
-        self.console.appendHtml(f"<span{style}>{body}</span>")
-        bar = self.console.verticalScrollBar()
-        bar.setValue(bar.maximum())
+    def console_write(self, text, color=None, kind=None):
+        if kind is None:
+            kind = "error" if color == self.palette_colors.get("danger") else "info"
+        self.console.add(text, color, kind)
+
+    def console_say(self, text):
+        self.console_write(text, kind="say")
+
+    def console_line_clicked(self, line):
+        editor = self.run_editor if self.run_editor is not None and \
+            self.tabs.indexOf(self.run_editor) >= 0 else self.editor
+        if editor is not None:
+            self.tabs.setCurrentWidget(editor)
+            editor.goto_line(line)
+
+    def open_lesson(self, title):
+        self.show_learn()
+        if self.learn_dialog is not None:
+            self.learn_dialog.open_lesson(title)
 
     def console_insert(self, text, color=None):
         cursor = self.console.textCursor()
@@ -1416,13 +1547,18 @@ class MainWindow(QMainWindow):
         else:
             self.run_process(editor)
 
-    def run_sparky(self, editor, step=False):
+    def run_sparky(self, editor, step=False, speed=None):
         self.reset_run_view()
         self.run_editor = editor
         source = editor.toPlainText()
         base = editor.path.parent if editor.path else USER_DIR
-        self.runner = RunnerThread(source, self.stage_model, self.speed.value(), base_dir=base)
-        self.runner.sig_say.connect(self.console_write)
+        self.runner = RunnerThread(source, self.stage_model,
+                                   self.speed.value() if speed is None else speed, base_dir=base,
+                                   breakpoints=editor.breakpoints() if not getattr(self, "running_selection", False) else ())
+        self.runner.sig_say.connect(self.console_say)
+        self.runner.sig_stats.connect(self.on_stats)
+        self.runner.sig_hint.connect(lambda text: (self.console_write("💡 " + text, self.palette_colors["muted"]),
+                                                   self.toast("Tip: add a wait inside that loop", 3500)))
         self.runner.sig_ask.connect(self.on_ask)
         self.runner.sig_choice.connect(self.on_choice)
         self.runner.sig_speak.connect(self.on_speak)
@@ -1437,6 +1573,14 @@ class MainWindow(QMainWindow):
         if step:
             self.runner.step()
         self.stage.set_mood("happy")
+        editor.clear_trail()
+        self.trail_timer.start(100)
+        self.replay_frames = []
+        self.replay_row.hide()
+        self.stage.set_replay(None)
+        self.replay_timer.start(66)
+        self.run_started = time.monotonic()
+        self.last_stats = None
         self.set_running(True, stage=True)
         self.set_state("running", "Running…")
         self.runner.start()
@@ -1602,6 +1746,10 @@ class MainWindow(QMainWindow):
         self.last_error = message
         self.stage.set_mood("oops")
         self.choice_bar.hide()
+        lesson = self.lesson_for(message)
+        if lesson:
+            QTimer.singleShot(0, lambda: self.console_write(
+                f"📖 Learn about this: {lesson} — click here", self.palette_colors["sky"], kind="error"))
         self.console_write(message, self.palette_colors["danger"])
         if line and self.run_editor is not None:
             self.run_editor.set_error_line(line)
@@ -1613,11 +1761,233 @@ class MainWindow(QMainWindow):
         self.choice_bar.hide()
         if ok:
             self.stage.set_mood("happy")
+        self.finish_run_tools(ok)
         editor = self.run_editor
         if editor is not None:
             QTimer.singleShot(600, lambda: editor.set_running_line(None))
         if ok:
             self.set_state("done", "Done ✓")
+
+    # ---------- alpha 3: editor and debugging tools ----------
+
+    def lesson_for(self, message):
+        from .lessons_data import LESSONS
+        low = message.lower()
+        for words, topic in docs.ERROR_LESSONS:
+            if any(w.lower() in low for w in words):
+                for lesson in LESSONS:
+                    if topic.lower() in lesson["title"].lower():
+                        return lesson["title"]
+        return None
+
+    def on_stats(self, steps, seconds):
+        self.last_stats = (steps, seconds)
+        self.status.showMessage(f"Ran {steps:,} steps in {seconds:.1f} seconds.", 6000)
+
+    def finish_run_tools(self, ok):
+        self.replay_timer.stop()
+        self.record_frame()
+        QTimer.singleShot(1400, self.trail_timer.stop)
+        if len(self.replay_frames) > 3 and not self.replay_row.isVisible():
+            self.replay_slider.blockSignals(True)
+            self.replay_slider.setRange(0, len(self.replay_frames) - 1)
+            self.replay_slider.setValue(len(self.replay_frames) - 1)
+            self.replay_slider.blockSignals(False)
+            self.replay_time.setText(f"{(len(self.replay_frames) - 1) * 0.066:.1f} s")
+            self.replay_row.show()
+        editor = self.run_editor
+        steps, seconds = self.last_stats or (0, time.monotonic() - self.run_started)
+        self.debug_panel.add_run({
+            "file": editor.display_name() if editor is not None else "program",
+            "when": time.time(), "seconds": seconds, "steps": steps,
+            "ok": ok and not self.last_error, "output": self.console.toPlainText()})
+        self.debug_panel.refresh()
+
+    def fade_trail(self):
+        editor = self.run_editor
+        if editor is not None and editor.trail:
+            editor.refresh_highlights()
+
+    def record_frame(self):
+        if len(self.replay_frames) < 3000:
+            self.replay_frames.append(self.stage_model.replay_frame())
+
+    def replay_to(self, index):
+        if not self.replay_frames:
+            return
+        last = index >= len(self.replay_frames) - 1
+        self.stage.set_replay(None if last else self.replay_frames[index])
+        self.replay_time.setText(f"{index * 0.066:.1f} s")
+
+    def breakpoints_changed(self):
+        editor = self.sender()
+        if self.runner and self.runner.isRunning() and editor is self.run_editor:
+            self.runner.set_breakpoints(editor.breakpoints())
+        self.debug_panel.refresh_breakpoints()
+
+    def problem_changed(self, problem):
+        if problem is not None and self.sender() is self.editor:
+            self.status.showMessage(problem.pretty().split("\n")[0], 5000)
+
+    def toggle_breakpoint(self):
+        if self.editor is not None:
+            self.editor.toggle_breakpoint()
+
+    def rename_symbol(self):
+        editor = self.editor
+        if editor is None:
+            return
+        old = editor.current_word()
+        if not old:
+            self.toast("Put the cursor on a name first.")
+            return
+        new, ok = QInputDialog.getText(self, "Rename", f"Rename “{old}” everywhere to:", text=old)
+        if ok and new.strip() and new.strip() != old:
+            count = editor.rename_symbol(old, new.strip())
+            self.toast(f"Renamed {count} time{'s' if count != 1 else ''} ✓" if count
+                       else f"Didn't find “{old}” in the code.")
+
+    def format_document(self):
+        if self.editor is not None:
+            self.toast("Tidied up the indentation ✓" if self.editor.format_document()
+                       else "The indentation already looks good.")
+
+    def set_view_option(self, key, on):
+        self.settings.setValue(key, bool(on))
+        for editor in self.editors():
+            {"minimap": editor.set_minimap, "word_wrap": editor.set_word_wrap,
+             "show_spaces": editor.set_show_spaces}[key](bool(on))
+        if self.split_view is not None:
+            {"minimap": self.split_view.set_minimap, "word_wrap": self.split_view.set_word_wrap,
+             "show_spaces": self.split_view.set_show_spaces}[key](bool(on))
+
+    def toggle_view_option(self, key):
+        self.set_view_option(key, not self.settings.value(key, False, type=bool))
+
+    def toggle_split(self):
+        if self.split_view is not None:
+            self.split_view.setParent(None)
+            self.split_view.deleteLater()
+            self.split_view = None
+            return
+        editor = self.editor
+        if editor is None:
+            return
+        view = CodeEditor(self.palette_colors, editor.language, editor.path,
+                          document=editor.document())
+        view.set_font_size(self.font_size)
+        view.title = editor.title
+        self.split_view = view
+        self.editor_split.addWidget(view)
+        self.editor_split.setSizes([1, 1])
+        self.toast("Split: a second view of the same file")
+
+    def toggle_zen(self):
+        zen = not getattr(self, "zen", False)
+        self.zen = zen
+        for widget in (self.activity_bar, self.status, self.console_card):
+            widget.setVisible(not zen)
+        if zen:
+            self.sidebar.hide()
+            self.toast("Zen mode: just the code and the stage. Press Ctrl+Alt+Z to come back.", 3500)
+        else:
+            self.sidebar.show()
+
+    def toggle_live(self):
+        self.live_mode = not self.live_mode
+        self.settings.setValue("live_mode", self.live_mode)
+        self.toast("Live mode on: drawings re-run as you type ✨" if self.live_mode else "Live mode off")
+        if self.live_mode:
+            self.live_run(force=True)
+
+    def live_run(self, force=False):
+        editor = self.editor
+        if not (self.live_mode or force) or editor is None or editor.language.id != "sparky":
+            return
+        if not self.live_mode and not force:
+            return
+        source = editor.toPlainText()
+        if editor.problem or is_arduino_program(source):
+            return
+        if re.search(r"^\s*(ask|when|forever|repeat until|repeat while)\b", source, re.M | re.I):
+            return            # programs that wait for you (or never end) don't re-run by themselves
+        if self.runner and self.runner.isRunning():
+            self.runner.stop()
+            self.runner.wait(500)
+        self.run_sparky(editor, speed=10)
+
+    def run_selection(self):
+        editor = self.editor
+        if editor is None or editor.language.runner != "stage":
+            self.toast("Run selection works on Sparky programs.")
+            return
+        cursor = editor.textCursor()
+        if not cursor.hasSelection():
+            self.toast("Select some lines first, then Run selection.")
+            return
+        doc = editor.document()
+        first = doc.findBlock(cursor.selectionStart())
+        last = doc.findBlock(cursor.selectionEnd() - 1)
+        lines = []
+        block = first
+        while block.isValid():
+            lines.append(block.text())
+            if block == last:
+                break
+            block = block.next()
+        import textwrap
+        source = "\n" * first.blockNumber() + textwrap.dedent("\n".join(lines))
+        self.running_selection = True
+        try:
+            self.run_sparky_source(editor, source)
+        finally:
+            self.running_selection = False
+
+    def run_sparky_source(self, editor, source):
+        editor.toPlainText = lambda: source       # run_sparky reads the code from here
+        try:
+            self.run_sparky(editor)
+        finally:
+            del editor.toPlainText
+        self.toast("Running the selected lines")
+
+    def toggle_bookmark(self):
+        if self.editor is not None:
+            self.editor.toggle_bookmark()
+
+    def next_bookmark(self, step=1):
+        if self.editor is not None and not self.editor.next_bookmark(step):
+            self.toast("No bookmarks yet — press Ctrl+Alt+K on a line.")
+
+    def export_html(self):
+        editor = self.editor
+        if editor is None:
+            return
+        name = (editor.path.stem if editor.path else Path(editor.display_name()).stem) + ".html"
+        path, _ = QFileDialog.getSaveFileName(self, "Export as colored HTML",
+                                              str(USER_DIR / name), "Web pages (*.html)")
+        if not path:
+            return
+        Path(path).write_text(editor.export_html(), encoding="utf-8")
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+        self.toast(f"Saved {Path(path).name} — print it from your browser ✓")
+
+    def find_in_files(self):
+        folder = self.files_panel.folder or (self.editor.path.parent if self.editor is not None
+                                             and self.editor.path else USER_DIR)
+        word = self.editor.textCursor().selectedText() if self.editor is not None else ""
+        FindInFilesDialog(self, folder, word).exec()
+
+    def fold_all(self, fold=True):
+        editor = self.editor
+        if editor is None:
+            return
+        if fold:
+            for line in sorted(editor.foldable(), reverse=True):
+                if line not in editor.folded:
+                    editor.toggle_fold(line)
+        else:
+            editor.unfold_all()
 
     # ---------- updates ----------
 

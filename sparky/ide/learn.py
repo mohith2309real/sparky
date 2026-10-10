@@ -41,6 +41,12 @@ class LearnDialog(QDialog):
 
         self.list.setCurrentRow(0)
 
+    def open_lesson(self, title):
+        for row, lesson in enumerate(LESSONS):
+            if title.lower() in lesson["title"].lower():
+                self.list.setCurrentRow(row)
+                return
+
     def show_lesson(self, row):
         if 0 <= row < len(LESSONS):
             self.body.setHtml(LESSONS[row]["html"])

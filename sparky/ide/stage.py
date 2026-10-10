@@ -147,6 +147,12 @@ class StageModel:
         with self.lock:
             return [item for item in self.items if item[0] == "L"]
 
+    def replay_frame(self):
+        """What the stage looks like right now, for replaying the run later."""
+        with self.lock:
+            return (len(self.items), {n: dict(v) for n, v in self.sprites.items()},
+                    dict(self.bubbles), self.background, self.backdrop, self.epoch)
+
     def sprite_list(self):
         with self.lock:
             return sorted((dict(s) for s in self.sprites.values()), key=lambda s: s["layer"])
@@ -327,6 +333,7 @@ class StageView(QWidget):
         self.cache_key = None
         self.cache_count = 0
         self.confetti = []
+        self.replay = None             # a frame from replay_frame() while replaying
         self.setMinimumSize(240, 180)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.ClickFocus)
@@ -353,6 +360,10 @@ class StageView(QWidget):
 
     def set_arrows(self, on):
         self.show_arrows = on
+        self.update()
+
+    def set_replay(self, frame):
+        self.replay = frame
         self.update()
 
     def set_mood(self, mood):
@@ -536,13 +547,20 @@ class StageView(QWidget):
         return self.cache
 
     def paint_stage(self, painter, stage_rect, zoom, framed=True):
+        replay = self.replay if framed else None
         with self.model.lock:
-            background = self.model.background
-            backdrop = self.model.backdrop
-            sprites = sorted((dict(s) for s in self.model.sprites.values()),
-                             key=lambda s: s["layer"])
-            bubbles = dict(self.model.bubbles)
-            items = None if framed else list(self.model.items)
+            if replay is not None and replay[5] == self.model.epoch:
+                count, sprite_map, bubbles, background, backdrop, _ = replay
+                sprites = sorted(sprite_map.values(), key=lambda s: s["layer"])
+                items = self.model.items[:count]
+            else:
+                replay = None
+                background = self.model.background
+                backdrop = self.model.backdrop
+                sprites = sorted((dict(s) for s in self.model.sprites.values()),
+                                 key=lambda s: s["layer"])
+                bubbles = dict(self.model.bubbles)
+                items = None if framed else list(self.model.items)
             self.painted_version = self.model.version
 
         painter.save()
@@ -560,7 +578,7 @@ class StageView(QWidget):
             dark = backdrop_is_dark(backdrop) or QColor(bg).lightness() < 128
             self.paint_grid(painter, stage_rect, zoom, dark)
 
-        if framed:
+        if framed and replay is None:
             painter.drawImage(stage_rect.topLeft(), self.drawing_layer(stage_rect, zoom))
         else:
             self.paint_items(painter, items, stage_rect, zoom)

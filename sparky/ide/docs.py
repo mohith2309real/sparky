@@ -169,12 +169,13 @@ def tooltip_html(word):
 
 # which lesson teaches the fix for an error (words in the message -> lesson title start)
 ERROR_LESSONS = [
-    (("variable called", "make it with: set"), "Variables"),
-    (("repeat", "times", "loop"), "Loops"),
-    (("never found its", "nothing to close", '"end"'), "Loops"),
-    (("then", "if", "else"), "Making choices"),
-    (("teach", "give back", "command", "input"), "Your own commands"),
+    (("variable called", "make it with: set"), "Remember things"),
+    (("never found its", "nothing to close", "repeat", "times", "loop"), "Loops"),
+    (("then", "else", "compare"), "Make choices"),
+    (("teach", "how to do", "input"), "Teach new tricks"),
+    (("give back",), "Commands that answer"),
     (("list", "item"), "Lists"),
-    (("color",), "Drawing"),
-    (("text starts with", "quote"), "Talking"),
+    (("color", "pen"), "Draw with the pen"),
+    (("text starts with", "quote", "never closes"), "Say hello"),
+    (("random",), "Surprise"),
 ]
