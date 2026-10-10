@@ -1,0 +1,4 @@
+# Music template
+play note 1 for 0.3
+play note 3 for 0.3
+play note 5 for 0.6

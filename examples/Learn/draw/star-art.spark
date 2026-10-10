@@ -1,0 +1,6 @@
+# Star artist
+# Draw a five-pointed star with five lines of 100.
+repeat 5 times
+  move 100
+  turn 144
+end

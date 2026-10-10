@@ -179,6 +179,9 @@ class SettingsDialog(QDialog):
         self.autocomplete = QCheckBox("Suggest words while typing")
         self.autocomplete.setChecked(m.completions_enabled)
         form.addRow("", self.autocomplete)
+        self.autosave = QCheckBox("Autosave files every five seconds (unsaved tabs have recovery drafts)")
+        self.autosave.setChecked(self.settings.value("autosave", True, type=bool))
+        form.addRow("", self.autosave)
         layout.addWidget(note("More editor tools (auto <b>end</b>, live error underlines, "
                               "number scrubbing…) arrive in the next 3.0 alphas."))
 
@@ -487,6 +490,7 @@ class SettingsDialog(QDialog):
         w.speed.setValue(self.speed.value())
         w.set_font_size_all(self.font_size.value())
         w.completions_enabled = self.autocomplete.isChecked()
+        self.settings.setValue("autosave", self.autosave.isChecked())
         for editor in w.editors():
             editor.completions_enabled = w.completions_enabled
         w.sound_bank.enabled = self.sounds.isChecked()

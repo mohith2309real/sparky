@@ -1,0 +1,6 @@
+# Keep your best score
+# Save a score of 12 as best, load it into best, and print it.
+set score to 12
+save score as "best"
+load "best" into best
+say best

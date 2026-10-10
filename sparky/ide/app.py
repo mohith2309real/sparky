@@ -10,6 +10,7 @@
 
 import datetime
 import html
+import hashlib
 import os
 import re
 import sys
@@ -40,6 +41,9 @@ from .export import make_app
 from .extension_manager import ExtensionManager
 from .home import HomePage
 from .learn import LearnDialog
+from .learning import Progress
+from .projects import ProjectStore
+from .project_ui import AssetsPanel, NewProjectDialog, VersionHistoryDialog, share_image
 from .panels import CommandPalette, ExtensionsPanel, FilesPanel, FindBar
 from .process_runner import ProcessRunner
 from .runner import RunnerThread
@@ -80,7 +84,8 @@ SIDEBAR = [("blocks", "blocks", "Blocks"), ("files", "files", "Files"),
            ("outline", "outline", "Outline: jump to your commands"),
            ("debug", "bug", "Debug: variables, breakpoints, run history"),
            ("extensions", "extensions", "Extensions"), ("ai", "ai", "AI helper"),
-           ("arduino", "chip", "Arduino: boards, upload, Serial Monitor")]
+           ("arduino", "chip", "Arduino: boards, upload, Serial Monitor"),
+           ("assets", "files", "Project images and sounds")]
 
 NEW_SKETCH = """void setup() {
   // put your setup code here, to run once:
@@ -121,6 +126,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.settings = prefs.open_settings()
+        self.project_store = ProjectStore()
+        self.learning_progress = Progress()
         self.theme_key = "daylight"
         self.palette_colors = LIGHT
         self.dark = False
@@ -183,6 +190,15 @@ class MainWindow(QMainWindow):
         self.set_mode(self.mode)
         self.set_state("", "Ready")
         self.connect_updates()
+
+        self.recovery_timer = QTimer(self)
+        self.recovery_timer.setSingleShot(True)
+        self.recovery_timer.setInterval(1000)
+        self.recovery_timer.timeout.connect(self.save_drafts)
+        self.autosave_timer = QTimer(self)
+        self.autosave_timer.setInterval(5000)
+        self.autosave_timer.timeout.connect(self.autosave)
+        self.autosave_timer.start()
 
         if self.settings.value("start_home", True, type=bool):
             self.show_home()
@@ -313,11 +329,12 @@ class MainWindow(QMainWindow):
         self.arduino_panel.message.connect(lambda text: self.toast(text, 3000))
         self.outline_panel = OutlinePanel(self)
         self.debug_panel = DebugPanel(self)
+        self.assets_panel = AssetsPanel(self)
         self.sidebar = QStackedWidget()
         self.sidebar.setObjectName("SidePanel")
         self.sidebar.setMinimumWidth(230)
         for widget in (self.blocks, self.files_panel, self.outline_panel, self.debug_panel,
-                       self.extensions_panel, self.ai_panel, self.arduino_panel):
+                       self.extensions_panel, self.ai_panel, self.arduino_panel, self.assets_panel):
             self.sidebar.addWidget(widget)
 
         center = QWidget()
@@ -535,6 +552,7 @@ class MainWindow(QMainWindow):
 
         file_menu = bar.addMenu("&File")
         act(file_menu, "New program", self.new_file, "Ctrl+N")
+        act(file_menu, "New project…", self.new_project)
         act(file_menu, "New Arduino sketch", self.new_sketch)
         act(file_menu, "Open…", self.open_file, "Ctrl+O")
         act(file_menu, "Open folder…", self.open_folder_dialog, key="open_folder")
@@ -543,6 +561,9 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         act(file_menu, "Save", self.save_file, "Ctrl+S")
         act(file_menu, "Save as…", self.save_as, "Ctrl+Shift+S")
+        act(file_menu, "Saved versions…", self.show_versions)
+        act(file_menu, "Export project bundle…", self.export_project_bundle)
+        act(file_menu, "Save share card…", self.save_share_card)
         file_menu.addSeparator()
         act(file_menu, "Export as colored HTML…", self.export_html)
         act(file_menu, "Make an App…", lambda: make_app(self))
@@ -644,9 +665,14 @@ class MainWindow(QMainWindow):
 
         learn = bar.addMenu("&Learn")
         act(learn, "Lessons and challenges", self.show_learn)
+        act(learn, "Explain this line", self.explain_line)
         self.examples_menu = learn.addMenu("Examples")
-        for path in sorted(EXAMPLES_DIR.glob("*.spark")) if EXAMPLES_DIR.is_dir() else []:
-            act(self.examples_menu, path.stem.replace("_", " ").title(),
+        example_menus = {}
+        for path in sorted(EXAMPLES_DIR.rglob("*.spark")) if EXAMPLES_DIR.is_dir() else []:
+            category = path.parent.name if path.parent != EXAMPLES_DIR else "Basics"
+            if category not in example_menus:
+                example_menus[category] = self.examples_menu.addMenu(category.title())
+            act(example_menus[category], path.stem.replace("_", " ").replace("-", " ").title(),
                 lambda p=path: self.open_example(p))
         act(learn, "Arduino examples…", self.arduino_panel.open_examples)
         act(learn, "Arduino pin maps", self.arduino_panel.open_pins)
@@ -655,6 +681,7 @@ class MainWindow(QMainWindow):
         help_menu = bar.addMenu("&Help")
         self.help_menu = help_menu
         act(help_menu, "Take the tour", self.start_tour)
+        act(help_menu, "Replay a tour part…", self.replay_tour_part)
         act(help_menu, "What's new", self.show_whats_new)
         act(help_menu, "Language guide", self.open_guide)
         act(help_menu, "Check for updates…", lambda: self.check_updates(manual=True))
@@ -749,6 +776,7 @@ class MainWindow(QMainWindow):
         editor = CodeEditor(self.palette_colors, language, path)
         editor.title = title
         editor.setPlainText(text)
+        editor.disk_digest = hashlib.sha256(path.read_bytes()).hexdigest() if path and path.exists() else None
         editor.document().setModified(False)
         editor.set_font_size(self.font_size)
         editor.completions_enabled = self.completions_enabled
@@ -758,6 +786,7 @@ class MainWindow(QMainWindow):
         editor.cursorPositionChanged.connect(self.update_cursor_label)
         editor.cursorPositionChanged.connect(self.update_breadcrumbs)
         editor.textChanged.connect(self.live_timer.start)
+        editor.textChanged.connect(self.schedule_drafts)
         editor.scrubbed.connect(lambda: self.live_run(force=True))
         editor.breakpoints_changed.connect(self.breakpoints_changed)
         editor.problem_changed.connect(self.problem_changed)
@@ -794,6 +823,8 @@ class MainWindow(QMainWindow):
             return
         self.update_file_label()
         self.update_cursor_label()
+        if hasattr(self, 'assets_panel') and self.assets_panel.isVisible():
+            self.assets_panel.refresh()
         lang = editor.language
         self.lang_label.setText(lang.name)
         board = lang.runner == "arduino" or (lang.runner == "stage" and
@@ -866,7 +897,7 @@ class MainWindow(QMainWindow):
     def open_file(self):
         start = str(self.files_panel.folder or USER_DIR)
         paths, _ = QFileDialog.getOpenFileNames(self, "Open files", start,
-                                                languages.open_dialog_filter())
+                                                languages.open_dialog_filter() + ";;Sparky projects (*.sparky)")
         for path in paths:
             self.open_path(Path(path))
 
@@ -895,6 +926,12 @@ class MainWindow(QMainWindow):
 
     def open_path(self, path):
         path = Path(path).resolve()
+        if path.suffix.lower() == ".sparky":
+            try:
+                return self.open_project(self.project_store.import_bundle(path))
+            except (OSError, ValueError) as error:
+                QMessageBox.warning(self, "Couldn't open project", str(error))
+                return None
         for editor in self.editors():
             if editor.path and editor.path.resolve() == path:
                 self.tabs.setCurrentWidget(editor)
@@ -927,8 +964,9 @@ class MainWindow(QMainWindow):
         if editor.path is None:
             return self.save_as(editor)
         try:
-            editor.path.write_text(editor.toPlainText(), encoding="utf-8")
-        except OSError as err:
+            self.project_store.save(editor.path, editor.toPlainText())
+            editor.disk_digest = hashlib.sha256(editor.path.read_bytes()).hexdigest()
+        except (OSError, ValueError, UnicodeError) as err:
             QMessageBox.warning(self, "Couldn't save", f"I couldn't save the file:\n{err}")
             return False
         editor.document().setModified(False)
@@ -985,7 +1023,7 @@ class MainWindow(QMainWindow):
         self.learn_dialog.raise_()
 
     def next_lesson_title(self):
-        return "Lessons from your first program to games."
+        return "Continue: " + self.learning_progress.next_lesson()["title"]
 
     def open_guide(self):
         from ..paths import RESOURCES
@@ -1375,6 +1413,155 @@ class MainWindow(QMainWindow):
             return
         self.stage_model.reset()
 
+    # ---------- learning and projects ----------
+
+    def explain_line(self):
+        editor = self.editor
+        line = editor.textCursor().block().text().strip()
+        word = line.split(' ', 1)[0].lower() if line else ''
+        info = docs.lookup(word)
+        text = info[0] + '\n\nExample:\n' + info[1] if info else (
+            'This is a comment: it helps people understand the program.' if line.startswith('#') else
+            'Choose a Sparky command line, then use Explain this line.')
+        QMessageBox.information(self, 'Explain this line', text)
+
+    def replay_tour_part(self):
+        parts = {
+            'Start and write code': ['home','new','type','run','console'],
+            'Draw and use the stage': ['new','draw','stage','tools','speed'],
+            'Step and debug': ['new','type','step','debug'],
+            'Blocks and Arduino': ['blocks','arduino'],
+            'Learn, AI and settings': ['ai','learn','commands','theme','settings'],
+        }
+        label, ok = QInputDialog.getItem(self, 'Replay a tour part', 'Which part?', list(parts), 0, False)
+        if ok:
+            self.start_tour(parts[label])
+
+    def new_project(self):
+        dialog = NewProjectDialog(self)
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+        try:
+            folder = self.project_store.create(dialog.name.text(), dialog.template.currentText())
+            self.open_project(folder)
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, 'Could not create project', str(error))
+
+    def open_project(self, folder):
+        self.files_panel.set_folder(Path(folder))
+        editor = self.open_path(Path(folder) / 'main.spark')
+        self.assets_panel.refresh()
+        return editor
+
+    def project_action(self, folder, action):
+        folder = Path(folder)
+        if action in ('rename', 'trash') and self.is_running():
+            self.toast('Stop the running program before moving a project.')
+            return
+        try:
+            if action == 'duplicate':
+                target = self.project_store.duplicate(folder)
+                self.open_project(target)
+            elif action == 'rename':
+                name, ok = QInputDialog.getText(self, 'Rename project', 'New name:', text=folder.name)
+                if not ok:
+                    return
+                target = self.project_store.rename(folder, name)
+                for editor in self.editors():
+                    if editor.path and editor.path.is_relative_to(folder):
+                        editor.path = target / editor.path.relative_to(folder)
+                        self.update_tab_title(editor)
+                self.files_panel.set_folder(target)
+            elif action == 'trash':
+                from PyQt6.QtCore import QFile
+                self.project_store.managed_folder(folder)
+                tabs = [e for e in self.editors() if e.path and e.path.is_relative_to(folder)]
+                if any(not self.confirm_discard(e) for e in tabs):
+                    return
+                result = QFile.moveToTrash(str(folder))
+                success = result[0] if isinstance(result, tuple) else result
+                if not success:
+                    raise OSError('The system could not move this project to Trash. It has been kept.')
+                for editor in tabs:
+                    self.tabs.removeTab(self.tabs.indexOf(editor))
+                    editor.deleteLater()
+                if not self.tabs.count():
+                    self.new_file()
+            self.save_drafts()
+            self.home_page.refresh()
+        except (OSError, ValueError) as error:
+            QMessageBox.warning(self, 'Could not change project', str(error))
+
+    def export_project_bundle(self):
+        folder = self.project_store.project_for(self.editor.path)
+        if folder is None:
+            self.toast('Create or open a project first.')
+            return
+        # Include current unsaved edits before exporting the bundle.
+        for editor in self.editors():
+            if editor.path and editor.path.is_relative_to(folder) and editor.document().isModified():
+                if not self.save_file(editor):
+                    return
+        path, _ = QFileDialog.getSaveFileName(self, 'Export project bundle', folder.name+'.sparky',
+                                              'Sparky projects (*.sparky)')
+        if path:
+            try:
+                self.project_store.bundle(folder, Path(path))
+                self.toast('Project bundled with its images and sounds.')
+            except (OSError, ValueError) as error:
+                QMessageBox.warning(self, 'Could not export project', str(error))
+
+    def show_versions(self):
+        if self.editor.path is None:
+            self.toast('Save this file first to start its version history.')
+            return
+        VersionHistoryDialog(self, self.editor).exec()
+
+    def save_share_card(self):
+        path, _ = QFileDialog.getSaveFileName(self, 'Save share card', 'My Sparky creation.png', 'Pictures (*.png)')
+        if path:
+            if share_image(self).save(path):
+                self.toast('Share card saved with your drawing and code.')
+            else:
+                self.toast('Could not save the share card there.')
+
+    def schedule_drafts(self):
+        if hasattr(self, 'recovery_timer'):
+            self.recovery_timer.start()
+
+    def save_drafts(self, clean=False):
+        tabs = []
+        for editor in self.editors():
+            if clean and (editor.path is None or editor.document().isModified()):
+                continue
+            tabs.append({'path': str(editor.path) if editor.path else None,
+                         'title': editor.display_name(), 'language': editor.language.id,
+                         'text': editor.toPlainText(), 'modified': editor.document().isModified(),
+                         'disk_digest': getattr(editor, 'disk_digest', None)})
+        try:
+            self.project_store.save_recovery(tabs, self.tabs.currentIndex(), clean)
+        except OSError:
+            self.status.showMessage('Could not save recovery drafts. Try Save as to a writable folder.', 5000)
+
+    def autosave(self):
+        self.save_drafts()
+        if not self.settings.value('autosave', True, type=bool):
+            return
+        for editor in self.editors():
+            if editor.path is None or not editor.document().isModified():
+                continue
+            try:
+                digest = hashlib.sha256(editor.path.read_bytes()).hexdigest() if editor.path.exists() else None
+                if digest != getattr(editor, 'disk_digest', None):
+                    self.status.showMessage('This file changed outside Sparky. Your draft is safe; use Save as to keep both.', 6000)
+                    continue
+                self.project_store.save(editor.path, editor.toPlainText())
+                editor.disk_digest = hashlib.sha256(editor.path.read_bytes()).hexdigest()
+                editor.document().setModified(False)
+                self.update_tab_title(editor)
+            except (OSError, ValueError, UnicodeError):
+                self.status.showMessage('Autosave could not save this file. Your recovery draft is kept.', 6000)
+
     # ---------- settings & session ----------
 
     def apply_stage_color(self):
@@ -1421,10 +1608,26 @@ class MainWindow(QMainWindow):
         folder = self.settings.value("folder", "", type=str)
         if folder and Path(folder).is_dir():
             self.files_panel.set_folder(Path(folder))
-        files = self.settings.value("open_files", [], type=list) or []
-        for name in files:
-            if Path(name).is_file():
-                self.open_path(Path(name))
+        recovery = self.project_store.load_recovery()
+        drafts = recovery.get("tabs", [])
+        if not recovery.get("clean", True) and isinstance(drafts, list):
+            for draft in drafts[:100]:
+                if not isinstance(draft, dict) or not isinstance(draft.get("text"), str):
+                    continue
+                name = draft.get("path")
+                path = Path(name) if isinstance(name, str) and Path(name).is_file() else None
+                language = languages.BY_ID.get(draft.get("language", "sparky"), languages.BY_ID["sparky"])
+                editor = self.new_tab(draft["text"], path, language, draft.get("title", "Recovered.spark"))
+                editor.document().setModified(bool(draft.get("modified", True)) or path is None)
+                editor.disk_digest = draft.get("disk_digest")
+            active = recovery.get("active", 0)
+            if isinstance(active, int) and 0 <= active < self.tabs.count():
+                self.tabs.setCurrentIndex(active)
+        else:
+            files = self.settings.value("open_files", [], type=list) or []
+            for name in files:
+                if Path(name).is_file():
+                    self.open_path(Path(name))
         if self.tabs.count() == 0:
             self.new_tab(WELCOME, title="welcome.spark")
         self.tab_changed(self.tabs.currentIndex())
@@ -1761,6 +1964,13 @@ class MainWindow(QMainWindow):
         self.choice_bar.hide()
         if ok:
             self.stage.set_mood("happy")
+            try:
+                self.learning_progress.record_run()
+            except OSError:
+                self.toast('Your program finished, but learning progress could not be saved.')
+            project = self.project_store.project_for(self.run_editor.path if self.run_editor else None)
+            if project is not None:
+                self.stage.render_image(1).save(str(project / "thumbnail.png"))
         self.finish_run_tools(ok)
         editor = self.run_editor
         if editor is not None:
@@ -2072,10 +2282,13 @@ class MainWindow(QMainWindow):
         else:
             self.updates.start()
 
-    def start_tour(self):
+    def start_tour(self, keys=None):
         if self.tour is not None:
             return
-        self.tour = TourOverlay(self, build_steps(self))
+        steps = build_steps(self)
+        if keys is not None:
+            steps = [step for step in steps if step.key in keys or step.key == "done"]
+        self.tour = TourOverlay(self, steps)
         self.tour.finished.connect(self.tour_finished)
 
     def tour_finished(self, completed):
@@ -2097,6 +2310,12 @@ class MainWindow(QMainWindow):
                 event.ignore()
                 return
         self.save_settings()
+        if self.learn_dialog and not self.learn_dialog.close():
+            event.ignore()
+            return
+        self.save_drafts(clean=True)
+        self.recovery_timer.stop()
+        self.autosave_timer.stop()
         if self.stage_window is not None:
             self.stage_window.close()
         event.accept()

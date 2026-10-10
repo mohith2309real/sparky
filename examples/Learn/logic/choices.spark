@@ -1,0 +1,8 @@
+# Make choices
+# Ask for a number. Say Big for numbers over 10, otherwise Small.
+ask number "Number?" into n
+if n > 10 then
+  say "Big"
+else
+  say "Small"
+end

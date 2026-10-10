@@ -1,0 +1,6 @@
+# A square
+# Use a repeat loop to draw a square with sides of 80.
+repeat 4 times
+  move 80
+  turn 90
+end

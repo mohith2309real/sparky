@@ -1,0 +1,6 @@
+# Bug hunt: one missing side
+# Fix the starter so it draws a square, not three sides.
+repeat 4 times
+  move 60
+  turn 90
+end

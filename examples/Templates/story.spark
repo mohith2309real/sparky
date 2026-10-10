@@ -1,0 +1,4 @@
+# Story template
+backdrop "night"
+say "Once upon a time..." for 2 seconds
+think "What happens next?"

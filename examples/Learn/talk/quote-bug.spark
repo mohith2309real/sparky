@@ -1,0 +1,3 @@
+# Bug hunt: close the quote
+# Fix the broken starter so it prints Fixed!
+say "Fixed!"

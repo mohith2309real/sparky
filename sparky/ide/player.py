@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont, QIcon, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit,
                              QMainWindow, QPlainTextEdit, QPushButton,
                              QSplitter, QVBoxLayout, QWidget)
@@ -13,18 +13,23 @@ from PyQt6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QLineEdit,
 from .runner import RunnerThread
 from .sounds import SoundBank
 from .stage import StageModel, StageView
+from .stage_tools import ChoiceBar, Speaker
 from .theme import LIGHT, build_qss, HEADING_FONTS
 from ..paths import ASSETS_DIR as ASSETS
 
 
 class PlayerWindow(QMainWindow):
-    def __init__(self, source, title):
+    def __init__(self, source, title, base_dir=None):
         super().__init__()
         self.source = source
+        self.base_dir = base_dir
+        self.speaker = Speaker()
         self.runner = None
         self.palette_colors = LIGHT
         self.setWindowTitle(f"{title} — made with Sparky")
         self.resize(760, 720)
+        self.exit_fullscreen = QShortcut(QKeySequence("Escape"), self)
+        self.exit_fullscreen.activated.connect(self.showNormal)
 
         self.stage_model = StageModel()
         self.sound_bank = SoundBank()
@@ -66,6 +71,9 @@ class PlayerWindow(QMainWindow):
         self.console.setObjectName("Console")
         self.console.setReadOnly(True)
         console_layout.addWidget(self.console, 1)
+        self.choice_bar = ChoiceBar()
+        self.choice_bar.chosen.connect(self.send_choice)
+        console_layout.addWidget(self.choice_bar)
         self.ask_input = QLineEdit()
         self.ask_input.setObjectName("AskInput")
         self.ask_input.setPlaceholderText("answers show up here...")
@@ -87,17 +95,35 @@ class PlayerWindow(QMainWindow):
             return
         self.stage_model.reset()
         self.console.clear()
-        self.runner = RunnerThread(self.source, self.stage_model, 5)
+        self.choice_bar.hide()
+        self.ask_input.setEnabled(False)
+        self.runner = RunnerThread(self.source, self.stage_model, 5, base_dir=self.base_dir)
         self.runner.sig_say.connect(self.on_say)
         self.runner.sig_ask.connect(self.on_ask)
+        self.runner.sig_choice.connect(self.on_choice)
+        self.runner.sig_speak.connect(self.on_speak)
         self.runner.sig_sound.connect(self.sound_bank.play)
         self.runner.sig_error.connect(self.on_error)
         self.runner.sig_done.connect(self.on_done)
         self.play_button.setEnabled(False)
         self.stop_button.setEnabled(True)
         self.runner.start()
+        self.stage.setFocus()
+
+    def on_choice(self, prompt, choices):
+        self.on_ask(prompt)
+        self.choice_bar.show_choices(choices)
+
+    def on_speak(self, text):
+        if not self.speaker.say(text):
+            self.on_say(text)
+
+    def send_choice(self, choice):
+        self.ask_input.setText(choice)
+        self.send_answer()
 
     def stop(self):
+        self.speaker.stop()
         if self.runner:
             self.runner.stop()
 
@@ -117,7 +143,9 @@ class PlayerWindow(QMainWindow):
         self.console.appendPlainText("✏️ " + text)
         self.ask_input.clear()
         self.ask_input.setEnabled(False)
+        self.choice_bar.hide()
         self.runner.answer(text)
+        self.stage.setFocus()
 
     def on_error(self, message, _line):
         self.console.appendPlainText(message)
@@ -126,22 +154,27 @@ class PlayerWindow(QMainWindow):
         self.play_button.setEnabled(True)
         self.stop_button.setEnabled(False)
         self.ask_input.setEnabled(False)
+        self.choice_bar.hide()
 
     def closeEvent(self, event):
+        self.speaker.stop()
         if self.runner and self.runner.isRunning():
             self.runner.stop()
             self.runner.wait(1000)
+            if self.runner.isRunning():
+                event.ignore()
+                return
         event.accept()
 
 
-def play_file(path):
+def play_file(path, fullscreen=False, icon_path=None):
     app = QApplication(sys.argv)
     app.setStyleSheet(build_qss(LIGHT))
     font = QFont()
     font.setFamilies(HEADING_FONTS)
     font.setPointSize(13)
     app.setFont(font)
-    icon = ASSETS / "logo_256.png"
+    icon = Path(icon_path) if icon_path else ASSETS / "logo_256.png"
     if icon.exists():
         app.setWindowIcon(QIcon(str(icon)))
 
@@ -153,6 +186,9 @@ def play_file(path):
         sys.exit(1)
     title = path.stem.replace("_", " ").replace("program", "").strip() \
         or "My App"
-    window = PlayerWindow(source, title.title())
-    window.show()
+    window = PlayerWindow(source, title, path.resolve().parent)
+    if fullscreen:
+        window.showFullScreen()
+    else:
+        window.show()
     sys.exit(app.exec())

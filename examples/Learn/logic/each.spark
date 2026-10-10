@@ -1,0 +1,6 @@
+# Visit every item
+# Use a loop to print red, green and blue.
+set colors to ["red", "green", "blue"]
+for each shade in colors
+  say shade
+end

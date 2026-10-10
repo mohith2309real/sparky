@@ -163,7 +163,13 @@ def main():
             print("Usage: python3 -m sparky play <file.spark>")
             sys.exit(1)
         from .ide.player import play_file
-        play_file(args[1])
+        import argparse
+        parser = argparse.ArgumentParser(prog="sparky play")
+        parser.add_argument("file")
+        parser.add_argument("--fullscreen", action="store_true")
+        parser.add_argument("--icon")
+        options = parser.parse_args(args[1:])
+        play_file(options.file, fullscreen=options.fullscreen, icon_path=options.icon)
         return
     if args and args[0] == "run":
         if len(args) < 2:

@@ -35,7 +35,7 @@ cp -R "$T/web" tests/mock_ai_server.py tests/platform/wine_test.sh "$W/"
   docker run --rm -v "$PWD:/src:ro" -e PYTHONDONTWRITEBYTECODE=1 -e SPARKY_SKIP_ARDUINO_COMPILE=1 \
     python:3.10-slim bash -e -o pipefail -c 'cd /src
     python -B -c "from pathlib import Path; paths = list(Path(\"sparky\").rglob(\"*.py\")) + [Path(\"sparky_boot.py\")]; [compile(p.read_text(encoding=\"utf-8\"), str(p), \"exec\") for p in paths]; print(\"Python 3.10: all app modules compile\")"
-    for t in test_lang test_lang_v2 test_lang_v3 test_to_python test_arduino test_editor_tools; do
+    for t in test_lang test_lang_v2 test_lang_v3 test_to_python test_arduino test_editor_tools test_learning_projects; do
       python -B "tests/$t.py" 2>&1 | tail -1
     done'
   echo "=== Linux arm64 / Debian 12"

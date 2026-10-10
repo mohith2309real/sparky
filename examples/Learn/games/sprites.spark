@@ -1,0 +1,7 @@
+# Meet your sprites
+# Make a rocket sprite, then move it to x 50, y 20 without drawing.
+make sprite rocket with costume "🚀"
+tell rocket
+  pen up
+  goto 50 20
+end

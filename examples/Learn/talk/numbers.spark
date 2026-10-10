@@ -1,0 +1,4 @@
+# Ask for a number
+# Ask for a number and print its double.
+ask number "A number?" into n
+say n * 2

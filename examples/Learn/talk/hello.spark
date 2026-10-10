@@ -1,0 +1,3 @@
+# Say hello!
+# Print Hello, world! exactly once.
+say "Hello, world!"

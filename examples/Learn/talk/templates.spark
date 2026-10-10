@@ -1,0 +1,4 @@
+# Words with values
+# Make name be Sparky and print I am Sparky.
+set name to "Sparky"
+say "I am {name}."

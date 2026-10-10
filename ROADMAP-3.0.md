@@ -72,7 +72,7 @@ the lessons, the installers and the app icon all share the same design system.
 - [ ] 26. **Console 2.0:** says, questions, answers, errors and info each get their own color and icon, plus Copy and Clear.
 - [x] 27. **Status bar 2.0:** run state, cursor, language, update pill, "by Mohith".
 - [x] 28. **Settings window redesign:** sections in a sidebar (General, Editor, Stage, Sounds, Languages, AI, Updates, Accessibility, Classroom). *(Classroom arrives with section M.)*
-- [ ] 29. **Learn window redesign:** a map of worlds and lessons with your stars.
+- [x] 29. **Learn window redesign:** a map of worlds and lessons with your stars.
 - [ ] 30. **Redesigned dialogs:** Welcome, About, Community, Make an App, Extensions.
 - [x] 31. **Four built-in themes:** Daylight, Midnight, Candy and High Contrast (VS Code themes still work).
 - [ ] 32. **Motion:** short animations for panels, buttons and toasts, respecting Reduce Motion.
@@ -145,7 +145,7 @@ the lessons, the installers and the app icon all share the same design system.
 - [x] 93. **Faster drawing** with cached layers, for drawings with 100,000+ lines.
 - [x] 94. **Costume picker** with 40 built-in emoji costumes.
 - [x] 95. **Mascot moods on the stage:** happy when done, "oops" on errors.
-- [ ] 96. **Confetti** when you finish a challenge. *(The confetti is built; it fires when challenges get checked, in G.)*
+- [x] 96. **Confetti** when you finish a challenge. *(The confetti is built; it fires when challenges get checked, in G.)*
 - [x] 97. **Stage color** follows the theme, or pick your own.
 - [x] 98. **Sprites panel:** every sprite with its x, y, size and costume.
 - [x] 99. **Click the stage to copy `x y`** for `goto`.
@@ -197,45 +197,45 @@ the lessons, the installers and the app icon all share the same design system.
 
 ### G. Learn (139–160)
 
-- [ ] 139. **30 lessons in 5 worlds:** Draw, Loops, Talk and Ask, Lists and Logic, Games.
-- [ ] 140. **Check my work:** lessons check your program and drawing.
-- [ ] 141. **Hints** in 3 levels for every challenge.
-- [ ] 142. **Badges** for milestones (first program, first game, 100 runs…).
-- [ ] 143. **Daily challenge.**
-- [ ] 144. **Bug hunts:** find and fix the bug.
-- [ ] 145. **Predict-the-output quizzes.**
-- [ ] 146. **Progress map** with stars.
-- [ ] 147. **Certificates** (PNG) for finishing a world, with your name.
-- [ ] 148. **Glossary** of coding words in kid language.
-- [ ] 149. **Searchable language reference.**
-- [ ] 150. **Explain this line** (offline, no AI).
-- [ ] 151. **Interactive tour** of everything in Sparky: it spotlights the real buttons and waits for you to do each step (type code, press Run, click a block, use the stage tools, open Learn, the AI helper, settings and updates). Runs on first launch, and anytime from Help → Take the tour. You can skip, go back, or replay one part.
-- [ ] 152. **Try it** buttons open lesson code in a new tab.
-- [ ] 153. **Progress report** for parents and teachers (HTML).
-- [ ] 154. **Python track:** lessons that move from Sparky to real Python, side by side.
-- [ ] 155. **40+ examples** sorted by category.
-- [ ] 156. **Templates:** Game, Story, Art, Music, Quiz.
-- [ ] 157. **Lesson search.**
-- [ ] 158. **Works offline:** all lessons are built in.
-- [ ] 159. **Achievements screen.**
-- [ ] 160. **Level-up moments:** a celebration when you finish a world.
+- [x] 139. **30 lessons in 5 worlds:** Draw, Loops, Talk and Ask, Lists and Logic, Games.
+- [x] 140. **Check my work:** lessons check your program and drawing.
+- [x] 141. **Hints** in 3 levels for every challenge.
+- [x] 142. **Badges** for milestones (first program, first game, 100 runs…).
+- [x] 143. **Daily challenge.**
+- [x] 144. **Bug hunts:** find and fix the bug.
+- [x] 145. **Predict-the-output quizzes.**
+- [x] 146. **Progress map** with stars.
+- [x] 147. **Certificates** (PNG) for finishing a world, with your name.
+- [x] 148. **Glossary** of coding words in kid language.
+- [x] 149. **Searchable language reference.**
+- [x] 150. **Explain this line** (offline, no AI).
+- [x] 151. **Interactive tour** of everything in Sparky: it spotlights the real buttons and waits for you to do each step (type code, press Run, click a block, use the stage tools, open Learn, the AI helper, settings and updates). Runs on first launch, and anytime from Help → Take the tour. You can skip, go back, or replay one part.
+- [x] 152. **Try it** buttons open lesson code in a new tab.
+- [x] 153. **Progress report** for parents and teachers (HTML).
+- [x] 154. **Python track:** lessons that move from Sparky to real Python, side by side.
+- [x] 155. **40+ examples** sorted by category.
+- [x] 156. **Templates:** Game, Story, Art, Music, Quiz.
+- [x] 157. **Lesson search.**
+- [x] 158. **Works offline:** all lessons are built in.
+- [x] 159. **Achievements screen.**
+- [x] 160. **Level-up moments:** a celebration when you finish a world.
 
 ### H. Projects and files (161–174)
 
-- [ ] 161. **Projects folder** (`~/Sparky/Projects`) shown on the Home screen.
-- [ ] 162. **Autosave,** so you never lose work.
-- [ ] 163. **Version history:** restore an older version of any file.
-- [ ] 164. **Thumbnails** of your stage on every project.
-- [ ] 165. **Project bundles:** `.sparky` files with code, images and sounds together.
-- [ ] 166. **Assets panel** for a project's images and sounds.
-- [ ] 167. **Rename, duplicate or move to Trash** from the Home screen.
-- [ ] 168. **Recent files.**
-- [ ] 169. **Crash recovery:** unsaved tabs come back after a crash.
-- [ ] 170. **File associations:** double-click a `.spark` file to open Sparky.
-- [ ] 171. **Open from Finder and the Dock** on Mac.
-- [ ] 172. **Share card:** a PNG with your drawing and your code.
-- [ ] 173. **Make an App 2.0:** your own name and icon, a fullscreen player.
-- [ ] 174. **New project dialog** with templates.
+- [x] 161. **Projects folder** (`~/Sparky/Projects`) shown on the Home screen.
+- [x] 162. **Autosave,** so you never lose work.
+- [x] 163. **Version history:** restore an older version of any file.
+- [x] 164. **Thumbnails** of your stage on every project.
+- [x] 165. **Project bundles:** `.sparky` files with code, images and sounds together.
+- [x] 166. **Assets panel** for a project's images and sounds.
+- [x] 167. **Rename, duplicate or move to Trash** from the Home screen.
+- [x] 168. **Recent files.**
+- [x] 169. **Crash recovery:** unsaved tabs come back after a crash.
+- [ ] 170. **File associations:** double-click a `.spark` file to open Sparky. *(Mac association exists; Windows and Linux installer integration is still required before final.)*
+- [x] 171. **Open from Finder and the Dock** on Mac.
+- [x] 172. **Share card:** a PNG with your drawing and your code.
+- [x] 173. **Make an App 2.0:** your own name and icon, a fullscreen player.
+- [x] 174. **New project dialog** with templates.
 
 ### I. Sound and music (175–182)
 

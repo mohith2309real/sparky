@@ -1,0 +1,9 @@
+# Game template
+make sprite rocket with costume "🚀"
+when key "right" pressed
+  tell rocket
+    pen up
+    point 90
+    move 10
+  end
+end

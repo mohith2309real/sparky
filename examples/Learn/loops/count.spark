@@ -1,0 +1,5 @@
+# Count up
+# Print the numbers 1 through 5, one on each line.
+for i from 1 to 5
+  say i
+end

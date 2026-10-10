@@ -1,0 +1,10 @@
+# Teach new tricks
+# Teach a square command, then use it to draw two squares.
+teach square
+  repeat 4 times
+    move 40
+    turn 90
+  end
+end
+do square
+do square

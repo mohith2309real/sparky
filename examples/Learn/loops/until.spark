@@ -1,0 +1,7 @@
+# Keep trying
+# Start score at 0 and add 2 until it reaches 10. Print 10.
+set score to 0
+repeat until score = 10
+  change score by 2
+end
+say score

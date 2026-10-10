@@ -1,0 +1,12 @@
+# Your first game
+# Make a rocket. On Space, move it up 20, add 1 to score and say the score. The checker presses twice.
+make sprite rocket with costume "🚀"
+set score to 0
+when key "space" pressed
+  tell rocket
+    pen up
+    move 20
+  end
+  change score by 1
+  say score
+end

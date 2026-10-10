@@ -1,0 +1,4 @@
+# Meet a record
+# Make a pet record with name Rex and age 3. Print Rex.
+set pet to {name: "Rex", age: 3}
+say name of pet

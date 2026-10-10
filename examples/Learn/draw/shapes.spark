@@ -1,0 +1,6 @@
+# Shapes everywhere
+# Draw three filled shapes: a circle, rectangle and star.
+fill color "yellow"
+circle 30
+rectangle 60 by 40
+star 5 points 40

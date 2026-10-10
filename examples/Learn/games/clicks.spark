@@ -1,0 +1,7 @@
+# Click for points
+# Start score at 0. Every stage click adds 1 and says the score. The checker clicks twice.
+set score to 0
+when stage clicked
+  change score by 1
+  say score
+end

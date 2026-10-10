@@ -5,8 +5,9 @@ import datetime
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QScrollArea,
-                             QSizePolicy, QVBoxLayout, QWidget)
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import (QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu,
+                             QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
 from . import mascot, whats_new
 from .widgets import IconLabel, text_button
@@ -162,6 +163,35 @@ class HomePage(QScrollArea):
             self.action_cards[name] = card
         self.column.addLayout(actions)
 
+        projects_head = QHBoxLayout()
+        projects_head.addWidget(self.section('Your projects'))
+        projects_head.addStretch(1)
+        create = text_button('New project', icon='plus')
+        create.clicked.connect(main.new_project)
+        projects_head.addWidget(create)
+        self.column.addLayout(projects_head)
+        project_grid = QGridLayout()
+        project_grid.setSpacing(12)
+        projects = main.project_store.list()
+        for i, folder in enumerate(projects):
+            card = HomeCard(None, folder.name, 'Open, remix or keep creating.')
+            picture = QPixmap(str(folder / 'thumbnail.png'))
+            if not picture.isNull():
+                thumb = QLabel()
+                thumb.setPixmap(picture.scaled(220,120,Qt.AspectRatioMode.KeepAspectRatio,
+                                              Qt.TransformationMode.SmoothTransformation))
+                card.layout().insertWidget(0, thumb)
+            card.clicked.connect(lambda p=folder: main.open_project(p))
+            card.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            card.customContextMenuRequested.connect(lambda pos, p=folder, c=card: self.project_menu(c,p,pos))
+            project_grid.addWidget(card, i // 4, i % 4)
+        if not projects:
+            empty = QLabel('Your creations have a home here. Start a Game, Story, Art, Music or Quiz project.')
+            empty.setObjectName('Muted')
+            empty.setWordWrap(True)
+            project_grid.addWidget(empty,0,0,1,4)
+        self.column.addLayout(project_grid)
+
         lower = QHBoxLayout()
         lower.setSpacing(18)
         left = QVBoxLayout()
@@ -211,9 +241,18 @@ class HomePage(QScrollArea):
         self.column.addLayout(lower)
 
         self.column.addWidget(self.section("Examples"))
+        examples = sorted(EXAMPLES_DIR.rglob('*.spark')) if EXAMPLES_DIR.is_dir() else []
+        categories = sorted({p.parent.name if p.parent != EXAMPLES_DIR else 'Basics' for p in examples})
+        category = QComboBox()
+        category.addItems(['All examples'] + categories)
+        selected = main.settings.value('example_category','All examples',type=str)
+        category.setCurrentText(selected if selected in categories else 'All examples')
+        category.currentTextChanged.connect(self.change_category)
+        self.column.addWidget(category)
         grid = QGridLayout()
         grid.setSpacing(12)
-        examples = sorted(EXAMPLES_DIR.glob("*.spark")) if EXAMPLES_DIR.is_dir() else []
+        examples = [p for p in examples if category.currentText() == 'All examples' or
+                    (p.parent.name if p.parent != EXAMPLES_DIR else 'Basics') == category.currentText()]
         for i, path in enumerate(examples):
             card = HomeCard(None, path.stem.replace("_", " ").title(), describe(path))
             card.setMinimumHeight(92)
@@ -226,6 +265,17 @@ class HomePage(QScrollArea):
         label = QLabel(text.upper())
         label.setObjectName("CardTitle")
         return label
+
+    def change_category(self, key):
+        self.main.settings.setValue('example_category', key)
+        self.refresh()
+
+    def project_menu(self, card, folder, pos):
+        menu = QMenu(card)
+        menu.addAction('Open', lambda: self.main.open_project(folder))
+        for title, action in [('Rename…','rename'),('Duplicate','duplicate'),('Move to Trash','trash')]:
+            menu.addAction(title, lambda checked=False, a=action: self.main.project_action(folder,a))
+        menu.exec(card.mapToGlobal(pos))
 
     def recent_row(self, path):
         row = HomeCard(None, path.name, str(path.parent).replace(str(Path.home()), "~"))

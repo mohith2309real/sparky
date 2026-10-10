@@ -1,0 +1,4 @@
+# Ask questions
+# Ask for a name, then greet that person with Hello, name!
+ask "Your name?" into name
+say "Hello, {name}!"

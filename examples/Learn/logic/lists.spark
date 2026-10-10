@@ -1,0 +1,4 @@
+# Lists
+# Make a pets list containing cat, dog, fish. Print the second pet.
+set pets to ["cat", "dog", "fish"]
+say item 2 of pets

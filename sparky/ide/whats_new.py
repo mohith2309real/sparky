@@ -3,6 +3,21 @@
 
 RELEASES = [
     {
+        "version": "3.0.0-alpha.4",
+        "date": "2026-10-10",
+        "title": "Five worlds to learn, and a home for your creations",
+        "items": [
+            "Thirty offline lessons with challenges, three hints, stars and world certificates.",
+            "Daily challenges, bug hunts, quizzes, achievements and progress reports.",
+            "A searchable reference, glossary, line explanations and a side-by-side Python track.",
+            "Fifty examples, six project templates and replay for individual tour parts.",
+            "Projects on Home with thumbnails, rename, duplicate and move to Trash.",
+            "Autosave, crash recovery and saved versions that preserve your newer work.",
+            "Project bundles include code, images and sounds; the Assets panel helps you use them.",
+            "Share cards and Make an App with your name, icon and fullscreen player.",
+        ],
+    },
+    {
         "version": "3.0.0-alpha.3",
         "date": "2026-10-10",
         "title": "An editor that helps, and a debugger you can see",

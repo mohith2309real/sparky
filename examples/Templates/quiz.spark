@@ -1,0 +1,7 @@
+# Quiz template
+set score to 0
+ask "What is 2 + 2?" into answer
+if answer = 4 then
+  change score by 1
+end
+say "Score: {score}"

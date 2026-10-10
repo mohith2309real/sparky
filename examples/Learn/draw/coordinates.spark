@@ -1,0 +1,5 @@
+# Find your place
+# With the pen up, go to x 100, y 50 and stamp once.
+pen up
+goto 100 50
+stamp

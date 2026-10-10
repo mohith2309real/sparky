@@ -1,0 +1,5 @@
+# Loops!
+# Use repeat to say Go! three times.
+repeat 3 times
+  say "Go!"
+end

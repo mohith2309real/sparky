@@ -1,0 +1,8 @@
+# Bug hunt: the wrong branch
+# Fix the starter so scores of at least 5 say Win; lower scores say Try again.
+ask number "Score?" into score
+if score >= 5 then
+  say "Win"
+else
+  say "Try again"
+end

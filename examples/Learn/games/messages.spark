@@ -1,0 +1,6 @@
+# Send a message
+# Broadcast go; a message handler should say Ready!
+when message "go"
+  say "Ready!"
+end
+broadcast "go"

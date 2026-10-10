@@ -1,0 +1,6 @@
+# Commands that answer
+# Teach double n, then print double(6).
+teach double n
+  give back n * 2
+end
+say double(6)

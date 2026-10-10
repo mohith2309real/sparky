@@ -1,0 +1,5 @@
+# Press to play
+# Say Jump! when Space is pressed. The checker presses Space for you.
+when key "space" pressed
+  say "Jump!"
+end

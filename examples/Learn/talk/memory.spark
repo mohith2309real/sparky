@@ -1,0 +1,5 @@
+# Remember things
+# Set score to 5, add 3, then print the score.
+set score to 5
+change score by 3
+say score

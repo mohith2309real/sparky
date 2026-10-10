@@ -1,0 +1,6 @@
+# Travel without drawing
+# Travel 40 upwards without drawing, then draw a line 60 upwards.
+pen up
+move 40
+pen down
+move 60
