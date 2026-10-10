@@ -190,5 +190,7 @@ check("tip for a loop that never waits", wait_for(lambda: bool(hints), 30), True
 win.stop_program()
 wait_for(lambda: not win.is_running(), 5)
 
+for tab in win.editors():           # nothing to save: don't ask before closing
+    tab.document().setModified(False)
 win.close()
 print(f"\nAll {passed} IDE debugging checks passed!")
