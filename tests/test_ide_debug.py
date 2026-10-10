@@ -183,12 +183,33 @@ dialog.close()
 
 # a loop that never waits gets a friendly tip
 hints = []
-win.new_tab("forever\n  set x to 1\nend\n", None, None, "busy.spark")
+busy = win.new_tab("forever\n  set x to 1\nend\n", None, None, "busy.spark")
 win.run_program()
 win.runner.sig_hint.connect(hints.append)
+running = win.runner
+cursor = busy.textCursor()
+cursor.select(cursor.SelectionType.Document)
+busy.setTextCursor(cursor)
+win.run_selection()
+check("run selection keeps an active runner intact", win.runner is running, True)
 check("tip for a loop that never waits", wait_for(lambda: bool(hints), 30), True)
 win.stop_program()
 wait_for(lambda: not win.is_running(), 5)
+
+# the Debug stop is interactive in both Kid and Pro mode
+for mode in ("kid", "pro"):
+    win.set_mode(mode)
+    win.start_tour()
+    tour = win.tour
+    tour.go(next(i for i, step in enumerate(tour.steps) if step.key == "debug"))
+    pump()
+    check(mode + " tour waits for Debug", tour.next.isEnabled(), False)
+    check(mode + " tour spotlights the real button", tour.hole.isNull(), False)
+    tour.run_helper()
+    pump(0.3)
+    check(mode + " tour unlocks when Debug opens", tour.next.isEnabled() and
+          win.sidebar.currentWidget() is win.debug_panel, True)
+    tour.finish(False)
 
 for tab in win.editors():           # nothing to save: don't ask before closing
     tab.document().setModified(False)

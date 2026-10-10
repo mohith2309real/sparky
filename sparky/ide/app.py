@@ -1547,10 +1547,10 @@ class MainWindow(QMainWindow):
         else:
             self.run_process(editor)
 
-    def run_sparky(self, editor, step=False, speed=None):
+    def run_sparky(self, editor, step=False, speed=None, source=None):
         self.reset_run_view()
         self.run_editor = editor
-        source = editor.toPlainText()
+        source = editor.toPlainText() if source is None else source
         base = editor.path.parent if editor.path else USER_DIR
         self.runner = RunnerThread(source, self.stage_model,
                                    self.speed.value() if speed is None else speed, base_dir=base,
@@ -1913,10 +1913,17 @@ class MainWindow(QMainWindow):
             return            # programs that wait for you (or never end) don't re-run by themselves
         if self.runner and self.runner.isRunning():
             self.runner.stop()
-            self.runner.wait(500)
+            if not self.runner.wait(500):
+                self.live_timer.start()
+                return
+        if self.proc.is_running() or self.arduino_panel.busy():
+            return
         self.run_sparky(editor, speed=10)
 
     def run_selection(self):
+        if self.is_running():
+            self.toast("Stop the current program before running selected lines.")
+            return
         editor = self.editor
         if editor is None or editor.language.runner != "stage":
             self.toast("Run selection works on Sparky programs.")
@@ -1944,11 +1951,7 @@ class MainWindow(QMainWindow):
             self.running_selection = False
 
     def run_sparky_source(self, editor, source):
-        editor.toPlainText = lambda: source       # run_sparky reads the code from here
-        try:
-            self.run_sparky(editor)
-        finally:
-            del editor.toPlainText
+        self.run_sparky(editor, source=source)
         self.toast("Running the selected lines")
 
     def toggle_bookmark(self):

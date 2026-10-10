@@ -109,6 +109,16 @@ def build_steps(w):
              prepare=lambda: remember("steps", w.step_count),
              done=lambda: w.step_count > start.get("steps", 0),
              helper=w.step_program, helper_label="Press it for me", mood="thinking"),
+        Step("debug", "See what your program is thinking",
+             "Open <b>Debug</b> with the bug button. It shows your variables, the commands "
+             "being called, and your last runs. Click beside a line number to add a "
+             "breakpoint, then Run to pause there. Add a watch like <b>score * 2</b> "
+             "to follow a value as you Step.",
+             target=lambda: w.activity_buttons.get("debug"),
+             prepare=lambda: w.show_sidebar_named("blocks"),
+             done=lambda: w.sidebar.isVisible() and w.sidebar.currentWidget() is w.debug_panel,
+             helper=lambda: w.show_sidebar_named("debug"), helper_label="Open it for me",
+             mood="thinking"),
         Step("blocks", "Blocks write code for you",
              "Click any colored block and real code appears in the editor. Try one!",
              target=lambda: w.sidebar, prepare=lambda: (w.show_workspace(), w.show_sidebar_named("blocks"),

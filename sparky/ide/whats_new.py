@@ -3,6 +3,21 @@
 
 RELEASES = [
     {
+        "version": "3.0.0-alpha.3",
+        "date": "2026-10-10",
+        "title": "An editor that helps, and a debugger you can see",
+        "items": [
+            "Auto end, closing pairs, live error marks, hover help and completion with docs.",
+            "Drag numbers, pick colors, rename names, format code and fold blocks.",
+            "Outline, bookmarks, split editor, minimap, Zen mode and Find in all files.",
+            "Live mode re-runs drawings while you type; export colored code as HTML.",
+            "Breakpoints, live variables, call stack and watch expressions in the Debug panel.",
+            "Run selected lines, filter the console, follow errors to lessons and replay drawings.",
+            "Run history, timing, fading line trails and a hint for loops that never wait.",
+            "The interactive tour now shows you the Debug panel.",
+        ],
+    },
+    {
         "version": "3.0.0-alpha.2",
         "date": "2026-10-09",
         "title": "Games, shapes, records — and Arduino",

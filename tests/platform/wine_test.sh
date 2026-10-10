@@ -1,7 +1,7 @@
 #!/bin/bash
 # Runs INSIDE a debian:13 amd64 container with wine: wine_test.sh
 # /w holds Sparky/ (the installed tree from build/windows/nsis), mock_ai_server.py and web/.
-set -e
+set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive WINEDEBUG=-all QT_QPA_PLATFORM=offscreen
 apt-get update -qq >/dev/null
 apt-get install -y -qq wine wine64 python3 >/dev/null 2>&1

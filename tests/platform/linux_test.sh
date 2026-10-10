@@ -1,13 +1,16 @@
 #!/bin/bash
 # Runs INSIDE a Linux container: linux_test.sh ARCH
 # /t holds Sparky-Linux-ARCH.tar.gz, mock_ai_server.py and web/ (a prepared OTA test).
-set -e
+set -euo pipefail
 ARCH="$1"
 export DEBIAN_FRONTEND=noninteractive QT_QPA_PLATFORM=offscreen
 apt-get update -qq >/dev/null
 apt-get install -y -qq python3 libgl1 libegl1 libxkbcommon0 libfontconfig1 libdbus-1-3 \
   libglib2.0-0 >/dev/null 2>&1
-cd /tmp && rm -rf Sparky && tar -xzf "/t/Sparky-Linux-$ARCH.tar.gz" && cd Sparky
+install_dir=$(mktemp -d /tmp/sparky-platform-XXXXXX)
+cd "$install_dir"
+tar -xzf "/t/Sparky-Linux-$ARCH.tar.gz"
+cd Sparky
 python3 /t/mock_ai_server.py 8773 >/dev/null 2>&1 &
 sleep 1
 echo "--- selfcheck"
@@ -30,5 +33,6 @@ echo "--- full update (new runtime: swaps the app folder)"
 SPARKY_UPDATE_NO_RELAUNCH=1 SPARKY_SELFCHECK_CHANNEL=stable SPARKY_SELFCHECK_UPDATE_URL=http://127.0.0.1:8899 \
   ./sparky selfcheck 2>&1 | tail -1 | grep -o "staged full update [^ |]*"
 for i in $(seq 1 120); do grep -qE "^(ok|failed)" "$XDG_STATE_HOME/sparky/updates/full-update.log" 2>/dev/null && break; sleep 0.5; done
-echo "helper: $(cut -c1-6 "$XDG_STATE_HOME/sparky/updates/full-update.log")"
+grep -q '^ok' "$XDG_STATE_HOME/sparky/updates/full-update.log"
+echo "helper: ok"
 ./sparky selfcheck 2>&1 | tail -1 | grep -o "signatures ok"

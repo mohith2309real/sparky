@@ -153,47 +153,47 @@ the lessons, the installers and the app icon all share the same design system.
 
 ### E. Editor (101–124)
 
-- [ ] 101. **Auto `end`:** press Enter after `repeat`, `if`, `teach` or `for` and the `end` appears.
-- [ ] 102. **Matching blocks:** put the cursor on `end` and its `repeat` / `if` lights up.
-- [ ] 103. **Live error squiggles** while you type, with the friendly message on hover.
-- [ ] 104. **Hover help:** hover a command to see what it does, with an example.
-- [ ] 105. **Number scrubbing:** Alt/Option-drag a number to change it and watch the drawing update.
-- [ ] 106. **Color swatches** next to color names, with a color picker.
-- [ ] 107. **Outline panel:** your commands and events, click to jump.
-- [ ] 108. **Go to definition** (Ctrl/Cmd-click a command name).
-- [ ] 109. **Rename everywhere** (F2).
-- [ ] 110. **Format document** (fix indentation).
-- [ ] 111. **Code folding** for blocks.
-- [ ] 112. **Split editor:** two files side by side.
-- [ ] 113. **Minimap** overview strip.
-- [ ] 114. **Word wrap** and **show spaces** toggles.
-- [ ] 115. **Smarter autocomplete** with your own variables and commands, plus docs.
-- [ ] 116. **Sparky snippets library** (square, star, game loop, quiz…).
-- [ ] 117. **Line tools:** duplicate line, move line up/down, select next match.
-- [ ] 118. **Breadcrumbs** ("teach star › repeat").
-- [ ] 119. **Live mode:** drawings re-run as you type.
-- [ ] 120. **Auto-close** quotes and brackets.
-- [ ] 121. **Zen mode** (just the code and the stage).
-- [ ] 122. **Find in all files** in the open folder.
-- [ ] 123. **Bookmarks** in code.
-- [ ] 124. **Export code** as colored HTML (ready to print).
+- [x] 101. **Auto `end`:** press Enter after `repeat`, `if`, `teach` or `for` and the `end` appears.
+- [x] 102. **Matching blocks:** put the cursor on `end` and its `repeat` / `if` lights up.
+- [x] 103. **Live error squiggles** while you type, with the friendly message on hover.
+- [x] 104. **Hover help:** hover a command to see what it does, with an example.
+- [x] 105. **Number scrubbing:** Alt/Option-drag a number to change it and watch the drawing update.
+- [x] 106. **Color swatches** next to color names, with a color picker.
+- [x] 107. **Outline panel:** your commands and events, click to jump.
+- [x] 108. **Go to definition** (Ctrl/Cmd-click a command name).
+- [x] 109. **Rename everywhere** in the current file (F2).
+- [x] 110. **Format document** (fix indentation).
+- [x] 111. **Code folding** for blocks.
+- [x] 112. **Split editor:** pin a view on the right, then switch tabs on the left for two files side by side.
+- [x] 113. **Minimap** overview strip.
+- [x] 114. **Word wrap** and **show spaces** toggles.
+- [x] 115. **Smarter autocomplete** with your own variables and commands, plus docs.
+- [x] 116. **Sparky snippets library** (square, star, game loop, quiz…).
+- [x] 117. **Line tools:** duplicate line, move line up/down, select next match.
+- [x] 118. **Breadcrumbs** ("teach star › repeat").
+- [x] 119. **Live mode:** drawings re-run as you type.
+- [x] 120. **Auto-close** quotes and brackets.
+- [x] 121. **Zen mode** (just the code and the stage).
+- [x] 122. **Find in all files** in the open folder.
+- [x] 123. **Bookmarks** in code.
+- [x] 124. **Export code** as colored HTML (ready to print).
 
 ### F. Run and debug (125–138)
 
-- [ ] 125. **Step:** run one line at a time.
-- [ ] 126. **Breakpoints:** click the gutter to pause there.
-- [ ] 127. **Variables panel:** every variable and list, updating live.
-- [ ] 128. **Call stack** for `teach` commands (great for recursion).
-- [ ] 129. **Line trail:** recently-run lines fade out.
-- [ ] 130. **Error explanations** link to the lesson that teaches the fix.
-- [ ] 131. **Forever-loop guard:** a friendly hint when a loop never waits.
-- [ ] 132. **Run selection:** run just the selected lines.
-- [ ] 133. **Run history:** your last 10 runs with output and time.
-- [ ] 134. **Run stats:** lines run and time taken.
-- [ ] 135. **Console filters:** only errors, or only says.
-- [ ] 136. **Click an error** in the console to jump to its line.
-- [ ] 137. **Watch expressions** (`x * 2`, `length(pets)`).
-- [ ] 138. **Replay the last run** with a slider.
+- [x] 125. **Step:** run one line at a time.
+- [x] 126. **Breakpoints:** click the gutter to pause there.
+- [x] 127. **Variables panel:** every variable and list, updating live.
+- [x] 128. **Call stack** for `teach` commands (great for recursion).
+- [x] 129. **Line trail:** recently-run lines fade out.
+- [x] 130. **Error explanations** link to the lesson that teaches the fix.
+- [x] 131. **Forever-loop guard:** a friendly hint when a loop never waits.
+- [x] 132. **Run selection:** run just the selected lines.
+- [x] 133. **Run history:** your last 10 runs with output and time.
+- [x] 134. **Run stats:** lines run and time taken.
+- [x] 135. **Console filters:** only errors, or only says.
+- [x] 136. **Click an error** in the console to jump to its line.
+- [x] 137. **Watch expressions** (`x * 2`, `length(pets)`).
+- [x] 138. **Replay the last run** with a slider (up to about three minutes of stage frames).
 
 ### G. Learn (139–160)
 
