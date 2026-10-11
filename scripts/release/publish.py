@@ -86,8 +86,14 @@ def main():
     sys.path.insert(0, str(REPO))
     from sparky.update import manifest
     live = f"{SITE}/updates/{args.channel}.json?check={datetime.datetime.now().timestamp()}"
-    raw = urllib.request.urlopen(live, timeout=30).read()
-    data = manifest.read(raw, args.channel)
+    # Firebase edges can briefly serve the previous signed manifest after deploy.
+    import time
+    for attempt in range(6):
+        request=urllib.request.Request(live+f'&attempt={attempt}',headers={'Cache-Control':'no-cache'})
+        raw=urllib.request.urlopen(request,timeout=30).read()
+        data=manifest.read(raw,args.channel)
+        if data['version']==ver: break
+        if attempt<5: time.sleep(2)
     assert data["version"] == ver, data["version"]
     print(f"live {args.channel} manifest verified: Sparky {data['version']}")
 

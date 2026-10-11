@@ -293,7 +293,7 @@ the lessons, the installers and the app icon all share the same design system.
 - [x] 214. **Break reminders** (optional, gentle).
 - [x] 215. **Offline mode:** pauses AI, update, extension catalog and Arduino download requests; built-in lessons and installed tools still work.
 - [x] 216. **Time on task** (local only).
-- [ ] 217. **Teacher guide** on the website.
+- [x] 217. **Teacher guide** on the website.
 
 ### N. App quality and platforms (218–226)
 
@@ -304,19 +304,19 @@ the lessons, the installers and the app icon all share the same design system.
 - [x] 222. **One window:** opening a file while Sparky runs uses the open window.
 - [ ] 223. **Portable Windows version** (a zip, no install).
 - [x] 224. **Diagnostics page:** versions, folders, update channel.
-- [ ] 225. **Sparky Player** gets the new stage, sprites and events.
+- [x] 225. **Sparky Player** gets the new stage, sprites and events.
 - [ ] 226. **Intel Mac build** *(later: needs a universal Python build; Apple-silicon only for now)*.
 
 ### O. Website and community (227–234)
 
-- [ ] 227. **Docs on the web:** the language reference, generated from the app's own data.
-- [ ] 228. **Release notes page** for every version.
+- [x] 227. **Docs on the web:** the language reference, generated from the app's own data.
+- [x] 228. **Release notes page** for every version.
 - [ ] 229. **Featured projects page** (from the same signed feed the app uses).
 - [ ] 230. **Playground upgrade:** more of the language runs in the browser, plus share links.
 - [ ] 231. **News in the app** (signed feed).
-- [ ] 232. **"Check your download" page:** how to verify checksums and signatures.
-- [ ] 233. **FAQ page.**
-- [ ] 234. **Teacher page.**
+- [x] 232. **"Check your download" page:** how to verify checksums and signatures.
+- [x] 233. **FAQ page.**
+- [x] 234. **Teacher page.**
 
 ### P. Arduino and electronics (235–252)
 
