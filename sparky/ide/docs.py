@@ -73,8 +73,11 @@ COMMANDS = {
     "fill": ("Fill the shapes that come next.", 'fill color "yellow"'),
     "no": ("Stop filling shapes.", "no fill"),
     # sound
-    "play": ("Play a sound (pop, ding, boing, laser, drum, tada, jump) or a note 1–14.",
+    "play": ("Play a sound, a note 1–14, a song of note names, or a chord. C is middle C; R is a rest.",
              "play note 4 for 0.5"),
+    "tempo": ("Beats per minute, from 20 to 300. Songs use one beat per note unless you give seconds with for.", "tempo 120"),
+    "instrument": ("Pick piano, xylophone, guitar, organ or flute.", 'instrument "guitar"'),
+    "rest": ("Wait silently for this many beats at your tempo.", "rest 1"),
     "beep": ("A little beep.", "beep"),
     # arduino
     "pin": ("Sparky for Arduino: turn a pin on or off, or set its power 0–255.", "pin 13 on"),

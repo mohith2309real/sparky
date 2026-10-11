@@ -45,10 +45,10 @@ def prepare_user_dirs():
     GALLERY_DIR.mkdir(parents=True, exist_ok=True)
     EXTENSIONS_DIR.mkdir(parents=True, exist_ok=True)
     if INSTALLED:
-        sample = RESOURCES / "extensions" / "shape_pack.py"
-        target = EXTENSIONS_DIR / "shape_pack.py"
-        if sample.exists() and not target.exists():
-            try:
-                shutil.copy(sample, target)
-            except OSError:
-                pass
+        for sample in sorted((RESOURCES / 'extensions').glob('*.py')):
+            target = EXTENSIONS_DIR / sample.name
+            if not target.exists():
+                try:
+                    shutil.copy(sample, target)
+                except OSError:
+                    pass

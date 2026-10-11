@@ -1,0 +1,6 @@
+{
+ "product":"sparky-task","schema":1,"title":"My first square",
+ "instructions":"Draw a square with four sides of 80 steps. Use a repeat loop. Sparky should finish back in the middle.",
+ "starter":"# Change the repeat count to make a square\nrepeat 3 times\n  move 80\n  turn 90\nend\n",
+ "requires":["RepeatTimes"],"checks":{"lines":4,"lengths":[80,80,80,80],"position":[0,0]}
+}

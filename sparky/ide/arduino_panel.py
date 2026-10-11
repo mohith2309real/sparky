@@ -199,6 +199,8 @@ class ArduinoPanel(QWidget):
             w.setEnabled(on)
 
     def set_up(self):
+        if self.main.settings.value('offline',False,type=bool):
+            self.status.setText('Offline mode is on. Arduino tools cannot be downloaded.'); return
         from ..arduino import download
         self.setup_button.setEnabled(False)
         self.setup_bar.show()
@@ -926,6 +928,8 @@ class LibraryDialog(QDialog):
         self.results.addItem(item)
 
     def find(self):
+        if self.main.settings.value('offline',False,type=bool):
+            self.status.setText('Offline mode is on. Installed libraries still work.'); return
         query = self.search.text().strip()
         if not query:
             self.show_installed()
@@ -954,6 +958,8 @@ class LibraryDialog(QDialog):
         return item.data(Qt.ItemDataRole.UserRole) if item else None
 
     def do_install(self):
+        if self.main.settings.value('offline',False,type=bool):
+            self.status.setText('Offline mode is on. Downloads are paused.'); return
         name = self.current()
         if not name:
             return
@@ -1031,6 +1037,9 @@ class BoardsDialog(QDialog):
         self.refresh()
 
     def refresh(self):
+        if self.main.settings.value('offline',False,type=bool):
+            self.status.setText('Offline mode is on. Package checks and downloads are paused.')
+            return
         urls = list(acli.EXTRA_INDEXES.values())
 
         def work():
@@ -1055,6 +1064,8 @@ class BoardsDialog(QDialog):
         in_thread(self, work, done)
 
     def do_install(self):
+        if self.main.settings.value('offline',False,type=bool):
+            self.status.setText('Offline mode is on. Downloads are paused.'); return
         item = self.list.currentItem()
         if item is None:
             self.status.setText("Pick a package first.")

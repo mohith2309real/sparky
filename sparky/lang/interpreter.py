@@ -64,7 +64,7 @@ FRAME = 1 / 60
 MAX_CALL_DEPTH = 150
 
 # built-in sound effects for `play "name"`
-SOUND_NAMES = ("pop", "ding", "boing", "laser", "drum", "tada", "jump")
+from .music import INSTRUMENTS, SOUND_NAMES, parse_notes
 
 KEY_NAMES = ("space", "left", "right", "up", "down", "enter", "any")
 
@@ -182,8 +182,9 @@ def _sprite_attr(name):
 
 
 class Interpreter:
-    def __init__(self, program, runtime, base_dir=None, source=None):
+    def __init__(self, program, runtime, base_dir=None, source=None, commands=None):
         self.program = program
+        self.commands = dict(commands or {})
         self.runtime = runtime
         self.base_dir = Path(base_dir) if base_dir else None
         self.source = source
@@ -192,6 +193,8 @@ class Interpreter:
         self.functions = {}
         self.handlers = []        # (When node, event value)
         self.speed = 5            # 1 (slow) .. 10 (instant)
+        self.tempo = 120
+        self.instrument = 'piano'
         self.main_sprite = Sprite("sparky")
         self.sprites = {"sparky": self.main_sprite}
         self.sprite = self.main_sprite     # the sprite the running script controls
@@ -982,6 +985,20 @@ class Interpreter:
             args.append((yield from self.eval(node)))
         yield from self.run_function(func, args, stmt.line)
 
+    def exec_ExtensionCommand(self, stmt):
+        from .parser import parse
+        spec = self.commands.get(stmt.name)
+        if spec is None:
+            raise SparkyError('Enable the extension for '+stmt.name+' before running this command.', stmt.line)
+        args = []
+        for node in stmt.args:
+            args.append((yield from self.eval(node)))
+        func = A.Teach(stmt.name, spec['params'], parse(spec['code'], self.commands), stmt.line)
+        try:
+            yield from self.run_function(func, args, stmt.line)
+        except SparkyError as error:
+            raise SparkyError('Inside extension command '+stmt.name+': '+error.message, stmt.line)
+
     def exec_ExprStatement(self, stmt):
         yield from self.eval(stmt.expr)
         yield ("step", stmt.line)
@@ -1057,7 +1074,7 @@ class Interpreter:
             self.used_files.add(key)
             from .parser import parse
             try:
-                program = parse(path.read_text(encoding="utf-8"))
+                program = parse(path.read_text(encoding="utf-8"), self.commands)
             except SparkyError as err:
                 where = f" line {err.line}" if err.line else ""
                 raise SparkyError(f"In {path.name}{where}: {err.message}", stmt.line)
@@ -1411,6 +1428,23 @@ class Interpreter:
         yield ("visual", stmt.line)
 
     def exec_PlaySound(self, stmt):
+        if stmt.kind in ('song', 'chord'):
+            value = yield from self.eval(stmt.value)
+            try:
+                notes = parse_notes(value, 8 if stmt.kind == 'chord' else 256)
+            except ValueError as error:
+                raise SparkyError(str(error), stmt.line)
+            duration = 60 / self.tempo if stmt.duration is None else self.as_number(
+                (yield from self.eval(stmt.duration)), stmt.line, 'play music for')
+            if not 0.05 <= duration <= 4:
+                raise SparkyError('Music notes last between 0.05 and 4 seconds.', stmt.line)
+            groups = [notes] if stmt.kind == 'chord' else [[note] for note in notes]
+            for group in groups:
+                sounding = [note for note in group if note is not None]
+                if sounding:
+                    self.runtime.play_music(self.instrument, sounding, duration)
+                yield ('wait', duration, stmt.line)
+            return
         if stmt.kind == "name":
             name = (yield from self.eval(stmt.value))
             if not isinstance(name, str):
@@ -1436,9 +1470,32 @@ class Interpreter:
             duration = self.as_number((yield from self.eval(stmt.duration)),
                                       stmt.line, "play note ... for")
         duration = max(0.05, min(4.0, duration))
-        self.runtime.play_sound("", note, duration)
+        if self.instrument == 'piano':
+            self.runtime.play_sound("", note, duration)
+        else:
+            octave, degree = divmod(note - 1, 7)
+            self.runtime.play_music(self.instrument, [60 + octave*12 + (0,2,4,5,7,9,11)[degree]], duration)
         # the note plays while the program waits, so melodies line up
         yield ("wait", duration, stmt.line)
+
+    def exec_MusicSetting(self, stmt):
+        value = yield from self.eval(stmt.value)
+        if stmt.kind == 'tempo':
+            value = self.as_number(value, stmt.line, 'tempo')
+            if not 20 <= value <= 300:
+                raise SparkyError('Tempo goes from 20 to 300 beats per minute.', stmt.line)
+            self.tempo = value
+        else:
+            if not isinstance(value, str) or value.lower() not in INSTRUMENTS:
+                raise SparkyError('Choose an instrument: '+', '.join(INSTRUMENTS)+'. Use quotes around its name.', stmt.line)
+            self.instrument = value.lower()
+        yield ('visual', stmt.line)
+
+    def exec_Rest(self, stmt):
+        beats = self.as_number((yield from self.eval(stmt.beats)), stmt.line, 'rest')
+        if not 0 <= beats <= 64:
+            raise SparkyError('A rest lasts between 0 and 64 beats.', stmt.line)
+        yield ('wait', beats * 60 / self.tempo, stmt.line)
 
     # ---------- Sparky for Arduino ----------
 

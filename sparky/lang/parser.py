@@ -45,7 +45,7 @@ STATEMENT_WORDS = [
     "say", "ask", "set", "change", "repeat", "forever", "if", "wait", "stop",
     "teach", "do", "move", "back", "turn", "point", "goto", "home", "pen",
     "clear", "hide", "show", "stamp", "background", "speed", "write", "beep",
-    "size", "play", "for", "add", "remove", "give", "return", "end", "else",
+    "size", "play", "tempo", "instrument", "rest", "for", "add", "remove", "give", "return", "end", "else",
 ]
 
 # Sparky 3.0 statements. They are NOT reserved, so programs that used these
@@ -77,8 +77,9 @@ SHAPES = ("circle", "rectangle", "polygon", "star", "dot", "arc")
 
 
 class Parser:
-    def __init__(self, source):
+    def __init__(self, source, commands=None):
         self.tokens = tokenize(source)
+        self.commands = commands or {}
         self.pos = 0
         self.depth = 0          # how many blocks deep we are (when-blocks go at the top)
 
@@ -192,6 +193,13 @@ class Parser:
             self.expect_newline()
             return A.ExprStatement(expr, tok.line)
         if method is None:
+            if word in self.commands:
+                self.next()
+                args = []
+                while self.peek().kind not in (NEWLINE, EOF):
+                    args.append(self.parse_expression())
+                self.expect_newline()
+                return A.ExtensionCommand(word, args, tok.line)
             if word in HELPER_WORDS:
                 raise SparkyError(f'"{word}" can\'t start a line by itself.', tok.line)
             hint = did_you_mean(word, STATEMENT_WORDS + NEW_STATEMENT_WORDS)
@@ -830,6 +838,12 @@ class Parser:
 
     def stmt_play(self):
         tok = self.next()
+        if self.at_word("song", "chord"):
+            kind = self.next().value
+            value = self.parse_expression()
+            duration = self.parse_expression() if self.accept_word("for") else None
+            self.expect_newline()
+            return A.PlaySound(kind, value, duration, tok.line)
         if self.accept_word("note"):
             note = self.parse_expression()
             duration = None
@@ -840,6 +854,24 @@ class Parser:
         value = self.parse_expression()
         self.expect_newline()
         return A.PlaySound("name", value, None, tok.line)
+
+    def stmt_tempo(self):
+        tok = self.next()
+        value = self.parse_expression()
+        self.expect_newline()
+        return A.MusicSetting("tempo", value, tok.line)
+
+    def stmt_instrument(self):
+        tok = self.next()
+        value = self.parse_expression()
+        self.expect_newline()
+        return A.MusicSetting("instrument", value, tok.line)
+
+    def stmt_rest(self):
+        tok = self.next()
+        beats = self.parse_expression()
+        self.expect_newline()
+        return A.Rest(beats, tok.line)
 
     # ---------- expressions (lowest to highest precedence) ----------
 
@@ -1083,8 +1115,8 @@ class Parser:
         raise SparkyError(f'I wasn\'t expecting "{tok.value}" here.', tok.line)
 
 
-def parse(source):
+def parse(source, commands=None):
     try:
-        return Parser(source).parse_program()
+        return Parser(source, commands).parse_program()
     except SparkyError as err:
         raise attach_example(err, source)

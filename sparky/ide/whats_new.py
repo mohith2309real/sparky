@@ -3,6 +3,22 @@
 
 RELEASES = [
     {
+        "version": "3.0.0-alpha.5",
+        "date": "2026-10-11",
+        "title": "Make music, get hints and code together",
+        "items": [
+            "Songs, chords, five instruments, tempo and rests, with a piano and 27 sounds.",
+            "AI hints, challenges and plans, per-project chats and a preview before inserting code.",
+            "See exactly what gets sent to AI; use local providers or more compatible presets.",
+            "Real Sparky extension commands, three packs and a signed featured catalog.",
+            "Preview themes, choose fonts and mascot colors, and share preferences without keys.",
+            "Readable text, color-blind syntax, a thicker cursor, read aloud and a left-handed layout.",
+            "Hindi and Telugu core controls in beta; lessons and command words stay in English.",
+            "Teacher PIN, offline restrictions, checked assignments and named hand-in ZIPs.",
+            "Local time on task, optional break reminders and an offline teacher guide.",
+        ],
+    },
+    {
         "version": "3.0.0-alpha.4",
         "date": "2026-10-10",
         "title": "Five worlds to learn, and a home for your creations",

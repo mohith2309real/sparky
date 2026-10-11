@@ -77,6 +77,9 @@ class GuiRuntime(Runtime):
     def play_sound(self, name, note, duration):
         self.thread.sig_sound.emit(name, float(note), float(duration))
 
+    def play_music(self, instrument, notes, duration):
+        self.thread.sig_music.emit(instrument, list(notes), float(duration))
+
     def speak(self, text):
         self.thread.sig_speak.emit(text)
 
@@ -111,16 +114,18 @@ class RunnerThread(QThread):
     sig_stats = pyqtSignal(int, float)  # steps run, seconds taken (just before done)
     sig_hint = pyqtSignal(str)          # a friendly tip, like "this loop never waits"
     sig_sound = pyqtSignal(str, float, float)  # name ("" = note), note, secs
+    sig_music = pyqtSignal(str, list, float)
     sig_line = pyqtSignal(int)          # line currently running
     sig_error = pyqtSignal(str, int)    # friendly message, line (0 = unknown)
     sig_done = pyqtSignal(bool)         # True if it finished without errors
     sig_paused = pyqtSignal(int)        # paused (by Pause or Step) at this line
     sig_resumed = pyqtSignal()
 
-    def __init__(self, source, model, start_speed, parent=None, base_dir=None, breakpoints=()):
+    def __init__(self, source, model, start_speed, parent=None, base_dir=None, breakpoints=(), commands=None):
         super().__init__(parent)
         self.source = source
         self.base_dir = base_dir
+        self.commands = dict(commands or {})
         self.breakpoints = frozenset(breakpoints)
         self.model = model
         self.start_speed = start_speed
@@ -192,9 +197,9 @@ class RunnerThread(QThread):
 
     def run(self):
         try:
-            program = parse(self.source)
+            program = parse(self.source, self.commands)
             self.interpreter = Interpreter(program, self.runtime, base_dir=self.base_dir,
-                                           source=self.source)
+                                           source=self.source, commands=self.commands)
             self.interpreter.break_lines = self.breakpoints
             self.interpreter.speed = self.start_speed
         except SparkyError as err:

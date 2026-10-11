@@ -242,6 +242,24 @@ class PlaySound(Node):
         self.duration = duration
 
 
+class MusicSetting(Node):
+    def __init__(self, kind, value, line):
+        super().__init__(line)
+        self.kind, self.value = kind, value
+
+
+class Rest(Node):
+    def __init__(self, beats, line):
+        super().__init__(line)
+        self.beats = beats
+
+
+class ExtensionCommand(Node):
+    def __init__(self, name, args, line):
+        super().__init__(line)
+        self.name, self.args = name, args
+
+
 # ---------- Sparky 2.0: lists, functions with results, for loops ----------
 
 class Nothing(Node):

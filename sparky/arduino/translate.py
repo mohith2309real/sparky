@@ -299,6 +299,8 @@ class ArduinoTranslator:
             self.buzzer = self.pin(s.pin)
             return [f"{pad}sparkyBuzzer = {self.buzzer};"]
         if isinstance(s, A.PlaySound):
+            if s.kind in ('song', 'chord'):
+                raise SparkyError('Songs and chords play on the stage. For an Arduino buzzer, use play note 1 for 0.5.', s.line)
             if self.buzzer is None:
                 raise SparkyError("Tell Sparky where the buzzer is first, like: buzzer 8",
                                   s.line)

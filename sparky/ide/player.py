@@ -2,6 +2,7 @@
 # console, and Play/Stop. No editor. This is what "Make an App" apps use.
 
 import sys
+import os
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, QTimer
@@ -14,6 +15,7 @@ from .runner import RunnerThread
 from .sounds import SoundBank
 from .stage import StageModel, StageView
 from .stage_tools import ChoiceBar, Speaker
+from .extension_manager import ExtensionManager
 from .theme import LIGHT, build_qss, HEADING_FONTS
 from ..paths import ASSETS_DIR as ASSETS
 
@@ -22,6 +24,13 @@ class PlayerWindow(QMainWindow):
     def __init__(self, source, title, base_dir=None):
         super().__init__()
         self.source = source
+        self.extensions = ExtensionManager()
+        from ..paths import prepare_user_dirs
+        prepare_user_dirs()
+        from .prefs import open_settings
+        from .classroom import blocked
+        if '--safe' not in sys.argv and os.environ.get('SPARKY_SAFE_MODE')!='1' and not blocked(open_settings(),'extensions'):
+            self.extensions.discover()
         self.base_dir = base_dir
         self.speaker = Speaker()
         self.runner = None
@@ -97,12 +106,14 @@ class PlayerWindow(QMainWindow):
         self.console.clear()
         self.choice_bar.hide()
         self.ask_input.setEnabled(False)
-        self.runner = RunnerThread(self.source, self.stage_model, 5, base_dir=self.base_dir)
+        self.runner = RunnerThread(self.source, self.stage_model, 5, base_dir=self.base_dir,
+                                   commands=self.extensions.api.commands)
         self.runner.sig_say.connect(self.on_say)
         self.runner.sig_ask.connect(self.on_ask)
         self.runner.sig_choice.connect(self.on_choice)
         self.runner.sig_speak.connect(self.on_speak)
         self.runner.sig_sound.connect(self.sound_bank.play)
+        self.runner.sig_music.connect(self.sound_bank.play_music)
         self.runner.sig_error.connect(self.on_error)
         self.runner.sig_done.connect(self.on_done)
         self.play_button.setEnabled(False)
@@ -123,6 +134,7 @@ class PlayerWindow(QMainWindow):
         self.send_answer()
 
     def stop(self):
+        self.sound_bank.stop()
         self.speaker.stop()
         if self.runner:
             self.runner.stop()
@@ -157,6 +169,7 @@ class PlayerWindow(QMainWindow):
         self.choice_bar.hide()
 
     def closeEvent(self, event):
+        self.sound_bank.stop()
         self.speaker.stop()
         if self.runner and self.runner.isRunning():
             self.runner.stop()

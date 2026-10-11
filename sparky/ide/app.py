@@ -126,7 +126,16 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.settings = prefs.open_settings()
+        from .i18n import translator
+        self.translator = translator()
+        self.translator.set_language(self.settings.value('app_language','en',type=str))
+        self.code_font = self.settings.value('code_font', '', type=str)
         self.project_store = ProjectStore()
+        from .classroom import TimeTracker
+        self.time_tracker = TimeTracker(self.project_store.root / '.activity.json')
+        self.last_activity = self.last_time_tick = time.monotonic()
+        self.assignment_dialog = None
+        self.current_assignment = None
         self.learning_progress = Progress()
         self.theme_key = "daylight"
         self.palette_colors = LIGHT
@@ -158,7 +167,8 @@ class MainWindow(QMainWindow):
         prepare_user_dirs()
         self.sound_bank = SoundBank()
         self.extension_manager = ExtensionManager()
-        if os.environ.get("SPARKY_SAFE_MODE") != "1":
+        from .classroom import blocked
+        if os.environ.get("SPARKY_SAFE_MODE") != "1" and not blocked(self.settings,'extensions'):
             self.extension_manager.discover()
         self.proc = ProcessRunner(self)
         self.proc.output.connect(self.on_proc_output)
@@ -189,6 +199,7 @@ class MainWindow(QMainWindow):
         self.set_theme(self.theme_key)
         self.set_mode(self.mode)
         self.set_state("", "Ready")
+        self.translator.apply(self)
         self.connect_updates()
 
         self.recovery_timer = QTimer(self)
@@ -199,6 +210,11 @@ class MainWindow(QMainWindow):
         self.autosave_timer.setInterval(5000)
         self.autosave_timer.timeout.connect(self.autosave)
         self.autosave_timer.start()
+        self.activity_timer = QTimer(self)
+        self.activity_timer.setInterval(1000)
+        self.activity_timer.timeout.connect(self.time_tick)
+        self.activity_timer.start()
+        QApplication.instance().installEventFilter(self)
 
         if self.settings.value("start_home", True, type=bool):
             self.show_home()
@@ -468,6 +484,10 @@ class MainWindow(QMainWindow):
         card.add_tool(self.console_filter)
         card.add_tool(copy)
         card.add_tool(clear)
+        self.fix_ai_button = text_button('Fix with AI')
+        self.fix_ai_button.clicked.connect(self.fix_with_ai)
+        self.fix_ai_button.hide()
+        card.add_tool(self.fix_ai_button)
         self.console = ConsoleView()
         self.console.line_clicked.connect(self.console_line_clicked)
         self.console.lesson_clicked.connect(self.open_lesson)
@@ -555,6 +575,8 @@ class MainWindow(QMainWindow):
         act(file_menu, "New project…", self.new_project)
         act(file_menu, "New Arduino sketch", self.new_sketch)
         act(file_menu, "Open…", self.open_file, "Ctrl+O")
+        act(file_menu, 'Open assignment…', self.open_assignment)
+        act(file_menu, 'Hand in…', self.hand_in)
         act(file_menu, "Open folder…", self.open_folder_dialog, key="open_folder")
         self.recent_menu = file_menu.addMenu("Open recent")
         self.recent_menu.aboutToShow.connect(self.fill_recent_menu)
@@ -608,7 +630,7 @@ class MainWindow(QMainWindow):
         act(view, "Blocks", lambda: self.show_sidebar_named("blocks"))
         act(view, "Files", lambda: self.show_sidebar_named("files"), key="view_files")
         act(view, "Extensions", lambda: self.show_sidebar_named("extensions"), key="view_extensions")
-        act(view, "AI helper", lambda: self.show_sidebar_named("ai"))
+        act(view, "AI helper", lambda: self.show_sidebar_named("ai"), key="view_ai")
         act(view, "Arduino", lambda: self.show_sidebar_named("arduino"))
         act(view, "Outline", lambda: self.show_sidebar_named("outline"), key="view_outline")
         act(view, "Debug", lambda: self.show_sidebar_named("debug"))
@@ -666,6 +688,8 @@ class MainWindow(QMainWindow):
         learn = bar.addMenu("&Learn")
         act(learn, "Lessons and challenges", self.show_learn)
         act(learn, "Explain this line", self.explain_line)
+        act(learn, "Explain this line with AI", self.explain_ai_line)
+        act(learn, "Piano and sound library…", self.show_music)
         self.examples_menu = learn.addMenu("Examples")
         example_menus = {}
         for path in sorted(EXAMPLES_DIR.rglob("*.spark")) if EXAMPLES_DIR.is_dir() else []:
@@ -714,6 +738,10 @@ class MainWindow(QMainWindow):
             self.update_file_label()
 
     def show_sidebar_named(self, key, toggle=False):
+        from .classroom import blocked
+        if key in ('ai','extensions') and blocked(self.settings,key):
+            self.toast('This panel is hidden in Classroom mode.')
+            return
         index = [k for k, _i, _t in SIDEBAR].index(key)
         was_home = self.center_stack.currentIndex() == 0
         self.show_workspace()
@@ -747,6 +775,7 @@ class MainWindow(QMainWindow):
         for key in ("view_files", "view_extensions", "open_folder"):
             if key in self.menu_actions:
                 self.menu_actions[key].setVisible(pro)
+        self.apply_classroom()
         self.lang_label.setVisible(pro)
         self.command_button.setText("Search commands…" if pro else "")
         if self.mode_actions:
@@ -774,11 +803,16 @@ class MainWindow(QMainWindow):
 
     def new_tab(self, text="", path=None, language=None, title=None):
         editor = CodeEditor(self.palette_colors, language, path)
+        editor.commands = self.extension_manager.api.commands
+        editor.code_font = self.code_font
         editor.title = title
         editor.setPlainText(text)
         editor.disk_digest = hashlib.sha256(path.read_bytes()).hexdigest() if path and path.exists() else None
         editor.document().setModified(False)
         editor.set_font_size(self.font_size)
+        editor.set_accessibility(self.settings.value('readable',False,type=bool),
+                                 self.settings.value('thick_cursor',False,type=bool),
+                                 self.settings.value('color_blind',False,type=bool))
         editor.completions_enabled = self.completions_enabled
         editor.snippets = self.snippets(editor.language.id)
         editor.document().modificationChanged.connect(
@@ -823,6 +857,8 @@ class MainWindow(QMainWindow):
             return
         self.update_file_label()
         self.update_cursor_label()
+        if hasattr(self, 'ai_panel'):
+            self.ai_panel.switch_project()
         if hasattr(self, 'assets_panel') and self.assets_panel.isVisible():
             self.assets_panel.refresh()
         lang = editor.language
@@ -835,7 +871,8 @@ class MainWindow(QMainWindow):
         self.blocks.set_language(lang.id)
         self.outline_panel.watch(editor)
         self.update_breadcrumbs()
-        self.run_button.setText(self.run_label)
+        from .i18n import translate
+        self.run_button.setText(translate(self.run_label,self.translator.language))
         self.arduino_panel.restore_board()
         self.speed.setEnabled(stage_lang)
         self.step_button.setEnabled(stage_lang and not self.proc.is_running())
@@ -926,6 +963,18 @@ class MainWindow(QMainWindow):
 
     def open_path(self, path):
         path = Path(path).resolve()
+        if path.suffix.lower()=='.sparkytask':
+            from .classroom import read_task
+            from .assignment_ui import AssignmentDialog
+            try:
+                task=read_task(path)
+                if self.assignment_dialog and not self.assignment_dialog.close(): return
+                self.current_assignment=task
+                self.assignment_dialog=AssignmentDialog(self,task)
+                self.assignment_dialog.show()
+            except (OSError,ValueError) as error:
+                self.toast('Could not open assignment: '+str(error))
+            return
         if path.suffix.lower() == ".sparky":
             try:
                 return self.open_project(self.project_store.import_bundle(path))
@@ -1022,6 +1071,13 @@ class MainWindow(QMainWindow):
         self.learn_dialog.show()
         self.learn_dialog.raise_()
 
+    def show_music(self):
+        from .music_panel import MusicDialog
+        if not hasattr(self, 'music_dialog'):
+            self.music_dialog = MusicDialog(self)
+        self.music_dialog.show()
+        self.music_dialog.raise_()
+
     def next_lesson_title(self):
         return "Continue: " + self.learning_progress.next_lesson()["title"]
 
@@ -1047,6 +1103,12 @@ class MainWindow(QMainWindow):
         menu.exec(self.help_button.mapToGlobal(self.help_button.rect().bottomLeft()))
 
     def open_settings(self, tab="General"):
+        from .classroom import verify_pin
+        if self.settings.value('classroom/enabled',False,type=bool):
+            pin,ok=QInputDialog.getText(self,'Classroom settings','Teacher PIN:',QLineEdit.EchoMode.Password)
+            if not ok: return
+            if not verify_pin(self.settings,pin):
+                self.toast('That PIN did not unlock Settings.'); return
         SettingsDialog(self, tab).exec()
 
     def show_whats_new(self):
@@ -1415,6 +1477,61 @@ class MainWindow(QMainWindow):
 
     # ---------- learning and projects ----------
 
+    def eventFilter(self, obj, event):
+        if event.type() in (QEvent.Type.KeyPress,QEvent.Type.MouseButtonPress,QEvent.Type.Wheel):
+            if isinstance(obj,QWidget) and (obj is self or self.isAncestorOf(obj)):
+                self.last_activity=time.monotonic()
+        return super().eventFilter(obj,event)
+
+    def time_tick(self):
+        now=time.monotonic(); elapsed=now-self.last_time_tick; self.last_time_tick=now
+        active=self.isActiveWindow() and self.center_stack.currentIndex()==1 and now-self.last_activity<300
+        if not self.settings.value('time_tracking',True,type=bool): active=False
+        if self.time_tracker.advance(elapsed,active,self.settings.value('break_reminders',False,type=bool),
+                                     self.settings.value('break_minutes',20,type=int)):
+            self.toast('A little break? Stretch, rest your eyes, then come back when you’re ready.',8000)
+        if int(self.time_tracker.seconds)%30==0:
+            try: self.time_tracker.save()
+            except OSError: pass
+
+    def apply_classroom(self):
+        from .classroom import blocked
+        for key in ('ai','extensions'):
+            hidden=blocked(self.settings,key)
+            self.activity_buttons[key].setVisible(not hidden and (key not in PRO_ONLY or self.mode=='pro'))
+            action=self.menu_actions.get('view_'+key)
+            if action: action.setVisible(not hidden and self.mode=='pro')
+            if hidden and self.sidebar.currentIndex()==[k for k,_,_ in SIDEBAR].index(key): self.sidebar.hide()
+        if blocked(self.settings,'ai') and self.ai_panel.worker and self.ai_panel.worker.isRunning():
+            self.ai_panel.worker.cancel()
+        hidden = blocked(self.settings,'extensions') or os.environ.get('SPARKY_SAFE_MODE')=='1'
+        previous = getattr(self,'classroom_extensions_hidden',False)
+        self.classroom_extensions_hidden = hidden
+        if hidden:
+            from .extension_manager import ExtensionAPI
+            self.extension_manager.api=ExtensionAPI()
+        elif previous:
+            self.extension_manager.discover()
+        self.blocks.reload_categories(self.extension_manager.api.block_categories)
+        self.refresh_extension_commands()
+
+    def open_assignment(self):
+        path,_=QFileDialog.getOpenFileName(self,'Open assignment',str(EXAMPLES_DIR/'Assignments'),'Sparky assignments (*.sparkytask)')
+        if path: self.open_path(Path(path))
+
+    def hand_in(self):
+        from .classroom import export_handin
+        name,ok=QInputDialog.getText(self,'Hand in','Your name:')
+        if not ok or not name.strip(): return
+        path,_=QFileDialog.getSaveFileName(self,'Save hand-in','My Sparky work.zip','Hand-ins (*.zip)')
+        if path:
+            try:
+                export_handin(path,self.editor.toPlainText(),name,self.current_assignment,
+                              self.project_store.project_for(self.editor.path),self.time_tracker.seconds)
+                self.toast('Hand-in saved with your name, program and project assets.')
+            except (OSError,ValueError) as error:
+                self.toast('Could not save hand-in: '+str(error))
+
     def explain_line(self):
         editor = self.editor
         line = editor.textCursor().block().text().strip()
@@ -1424,6 +1541,23 @@ class MainWindow(QMainWindow):
             'This is a comment: it helps people understand the program.' if line.startswith('#') else
             'Choose a Sparky command line, then use Explain this line.')
         QMessageBox.information(self, 'Explain this line', text)
+
+    def explain_ai_line(self):
+        line = self.editor.textCursor().block().text()
+        self.show_sidebar_named('ai')
+        self.ai_panel.ask('Explain this line in simple words and give one small hint: '+line)
+
+    def refresh_ai_actions(self):
+        from .ai import PROVIDERS, provider_config
+        cfg = provider_config(self.settings)
+        needs_key = PROVIDERS.get(cfg['name'], ('', '', '', True))[3]
+        ready = bool(cfg['model']) and (bool(cfg['key']) or not needs_key)
+        from .classroom import blocked
+        self.fix_ai_button.setVisible(bool(self.last_error) and ready and not blocked(self.settings,'ai') and not self.settings.value('offline', False, type=bool))
+
+    def fix_with_ai(self):
+        self.show_sidebar_named('ai')
+        self.ai_panel.ask('Help me understand the last error and give one hint for fixing it.')
 
     def replay_tour_part(self):
         parts = {
@@ -1467,6 +1601,10 @@ class MainWindow(QMainWindow):
                 if not ok:
                     return
                 target = self.project_store.rename(folder, name)
+                self.ai_panel.save_chat()
+                self.ai_panel.chat_store.rename_project(folder, target)
+                if self.ai_panel.chat_project == folder:
+                    self.ai_panel.chat_project = target
                 for editor in self.editors():
                     if editor.path and editor.path.is_relative_to(folder):
                         editor.path = target / editor.path.relative_to(folder)
@@ -1573,6 +1711,8 @@ class MainWindow(QMainWindow):
 
     def load_settings(self):
         s = self.settings
+        self.code_font = s.value('code_font', '', type=str)
+        self.set_mascot_color(s.value('mascot_color', '#e0805f', type=str))
         key = s.value("theme", "", type=str)
         if not key:
             key = "midnight" if s.value("dark", False, type=bool) else "daylight"
@@ -1582,11 +1722,13 @@ class MainWindow(QMainWindow):
         self.completions_enabled = s.value("autocomplete", True, type=bool)
         self.sound_bank.enabled = s.value("sounds", True, type=bool)
         self.sound_bank.volume = s.value("volume", 80, type=int) / 100
+        self.sound_bank.events = {kind: s.value('sound_events/'+kind, True, type=bool) for kind in ('run', 'done', 'error')}
         self.set_reduce_motion(s.value("reduce_motion", False, type=bool))
         self.set_grid(s.value("stage_grid", False, type=bool))
         self.set_arrows(s.value("stage_arrows", False, type=bool))
         self.live_mode = s.value("live_mode", False, type=bool)
         self.apply_stage_color()
+        self.apply_accessibility()
         geometry = s.value("geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
@@ -1600,6 +1742,8 @@ class MainWindow(QMainWindow):
         s.setValue("autocomplete", self.completions_enabled)
         s.setValue("sounds", self.sound_bank.enabled)
         s.setValue("volume", int(self.sound_bank.volume * 100))
+        for kind, enabled in self.sound_bank.events.items():
+            s.setValue('sound_events/'+kind, enabled)
         s.setValue("geometry", self.saveGeometry())
         s.setValue("open_files", [str(e.path) for e in self.editors() if e.path])
         s.setValue("mode", self.mode)
@@ -1635,10 +1779,35 @@ class MainWindow(QMainWindow):
     def set_font_size_all(self, size):
         self.font_size = max(10, min(28, size))
         for editor in self.editors():
+            editor.code_font = self.code_font
             editor.set_font_size(self.font_size)
+
+    def refresh_extension_commands(self):
+        for editor in self.editors():
+            editor.commands = self.extension_manager.api.commands
+            editor.check_code()
 
     def set_reduce_motion(self, on):
         REDUCE_MOTION["on"] = bool(on)
+
+    def set_mascot_color(self, color):
+        if QColor(color).isValid():
+            mascot.BODY = QColor(color).name()
+            if hasattr(self, 'stage'):
+                self.stage.update()
+            if hasattr(self, 'home'):
+                self.home.refresh()
+
+    def apply_accessibility(self):
+        s = self.settings
+        for editor in self.editors():
+            editor.set_accessibility(s.value('readable',False,type=bool),
+                                     s.value('thick_cursor',False,type=bool),
+                                     s.value('color_blind',False,type=bool))
+        left = s.value('left_handed',False,type=bool)
+        self.split.insertWidget(1 if left else 2, self.stage_box)
+        self.split.setSizes([270,530,640] if left else [270,640,530])
+        self.translator.set_language(s.value('app_language','en',type=str))
 
     # ---------- theming ----------
 
@@ -1683,6 +1852,8 @@ class MainWindow(QMainWindow):
         self.console.add(text, color, kind)
 
     def console_say(self, text):
+        if self.settings.value('read_aloud',False,type=bool):
+            self.speaker.say(text, self.sound_bank.volume)
         self.console_write(text, kind="say")
 
     def console_line_clicked(self, line):
@@ -1757,6 +1928,7 @@ class MainWindow(QMainWindow):
         base = editor.path.parent if editor.path else USER_DIR
         self.runner = RunnerThread(source, self.stage_model,
                                    self.speed.value() if speed is None else speed, base_dir=base,
+                                   commands=self.extension_manager.api.commands,
                                    breakpoints=editor.breakpoints() if not getattr(self, "running_selection", False) else ())
         self.runner.sig_say.connect(self.console_say)
         self.runner.sig_stats.connect(self.on_stats)
@@ -1768,6 +1940,7 @@ class MainWindow(QMainWindow):
         self.runner.sig_listening.connect(
             lambda: self.set_state("running", "Listening for keys and clicks — press Stop to end"))
         self.runner.sig_sound.connect(self.sound_bank.play)
+        self.runner.sig_music.connect(self.sound_bank.play_music)
         self.runner.sig_line.connect(editor.set_running_line)
         self.runner.sig_error.connect(self.on_error)
         self.runner.sig_done.connect(self.on_done)
@@ -1787,6 +1960,7 @@ class MainWindow(QMainWindow):
         self.set_running(True, stage=True)
         self.set_state("running", "Running…")
         self.runner.start()
+        self.sound_bank.event('run')
         if "when key" in source or 'key "' in source or "when clicked" in source \
                 or "when stage" in source or " clicked" in source:
             self.stage.setFocus()      # keys go to the program
@@ -1852,7 +2026,8 @@ class MainWindow(QMainWindow):
         self.proc.start(command, path.parent)
 
     def set_running(self, running, stage=False):
-        self.run_button.setText(getattr(self, "run_label", "Run"))
+        from .i18n import translate
+        self.run_button.setText(translate(getattr(self, "run_label", "Run"),self.translator.language))
         self.run_button.setEnabled(not running)
         self.stop_button.setEnabled(running)
         self.pause_button.setEnabled(running and stage)
@@ -1889,6 +2064,7 @@ class MainWindow(QMainWindow):
             self.set_state("error", "There's a problem — check the console")
 
     def stop_program(self):
+        self.sound_bank.stop()
         self.speaker.stop()
         self.arduino_panel.stop()
         if self.runner and self.runner.isRunning():
@@ -1947,6 +2123,7 @@ class MainWindow(QMainWindow):
 
     def on_error(self, message, line):
         self.last_error = message
+        self.refresh_ai_actions()
         self.stage.set_mood("oops")
         self.choice_bar.hide()
         lesson = self.lesson_for(message)
@@ -1959,6 +2136,7 @@ class MainWindow(QMainWindow):
         self.set_state("error", f"Oops on line {line}" if line else "Oops — check the console")
 
     def on_done(self, ok):
+        self.sound_bank.event('done' if ok else 'error')
         self.set_running(False)
         self.ask_input.setEnabled(False)
         self.choice_bar.hide()
@@ -2300,16 +2478,28 @@ class MainWindow(QMainWindow):
     # ---------- closing ----------
 
     def closeEvent(self, event):
+        worker = self.ai_panel.worker
+        if worker and worker.isRunning():
+            worker.cancel()
+            if not worker.wait(1000):
+                self.toast('Stopping the AI reply before closing…')
+                event.ignore()
+                return
         if self.runner and self.runner.isRunning():
             self.runner.stop()
             self.runner.wait(1000)
         if self.proc.is_running():
             self.proc.stop()
+        if self.assignment_dialog and not self.assignment_dialog.close():
+            event.ignore(); return
         for editor in self.editors():
             if not self.confirm_discard(editor):
                 event.ignore()
                 return
         self.save_settings()
+        self.activity_timer.stop()
+        try: self.time_tracker.save()
+        except OSError: pass
         if self.learn_dialog and not self.learn_dialog.close():
             event.ignore()
             return

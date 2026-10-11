@@ -324,6 +324,10 @@ class CodeEditor(QPlainTextEdit):
         self.running_line = None
         self.error_line = None
         self.problem = None                 # (line, message) found while typing
+        self.commands = {}
+        self.code_font = ''
+        self.readable = False
+        self.color_blind = False
         self.trail = {}                     # line -> when it last ran
         self.completions_enabled = True
         self.auto_close = True
@@ -392,9 +396,15 @@ class CodeEditor(QPlainTextEdit):
 
     def set_font_size(self, size):
         size = max(10, min(28, size))
+        self.requested_font_size = size
+        display_size = size * (1.15 if self.readable else 1)
         font = QFont()
-        font.setFamilies(CODE_FONTS)
-        font.setPointSize(size)
+        font.setFamilies([self.code_font] if self.code_font else CODE_FONTS)
+        font.setPointSizeF(display_size)
+        font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.1 if self.readable else 0)
+        families=[self.code_font] if self.code_font else CODE_FONTS
+        css=', '.join('"'+f.replace('"','').replace('\\','')+'"' for f in families)
+        self.setStyleSheet(f'QPlainTextEdit {{ font-family: {css}; font-size: {display_size:g}pt; }}')
         self.setFont(font)
         self.setTabStopDistance(QFontMetricsF(font).horizontalAdvance(" ") * 4)
         if hasattr(self, "gutter"):
@@ -402,7 +412,13 @@ class CodeEditor(QPlainTextEdit):
             self.gutter.update()
 
     def zoom(self, delta):
-        self.set_font_size(self.font().pointSize() + delta)
+        self.set_font_size(self.requested_font_size + delta)
+
+    def set_accessibility(self, readable=False, thick_cursor=False, color_blind=False):
+        self.readable, self.color_blind = bool(readable), bool(color_blind)
+        self.setCursorWidth(3 if thick_cursor else 1)
+        self.set_font_size(self.requested_font_size)
+        self.apply_palette(self.palette_colors)
 
     def set_word_wrap(self, on):
         self.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth if on
@@ -429,7 +445,14 @@ class CodeEditor(QPlainTextEdit):
     def apply_palette(self, palette):
         self.palette_colors = palette
         if self.highlighter is not None:
-            self.highlighter.set_palette(palette)
+            syntax=palette
+            if self.color_blind:
+                dark=QColor(palette['surface']).lightness()<128
+                syntax=dict(palette, syn_cmd='#56b4e9' if dark else '#006b8f',
+                            syn_word='#e69f00' if dark else '#8b5300',
+                            syn_str='#f0e442' if dark else '#685600',
+                            syn_num='#cc79a7' if dark else '#87386b')
+            self.highlighter.set_palette(syntax)
         self.refresh_highlights()
         self.gutter.update()
         self.minimap.update()
@@ -785,7 +808,7 @@ class CodeEditor(QPlainTextEdit):
             return
         from ..lang import SparkyError, parse
         try:
-            parse(self.toPlainText())
+            parse(self.toPlainText(), self.commands)
             problem = None
         except SparkyError as err:
             problem = err if err.line else None

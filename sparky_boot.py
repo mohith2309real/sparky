@@ -19,7 +19,7 @@ import re
 import sys
 from pathlib import Path
 
-BASE_VERSION = "3.0.0-alpha.4"   # the version of the code built into this app
+BASE_VERSION = "3.0.0-alpha.5"   # the version of the code built into this app
 RUNTIME = 1                      # bump when Python, Qt or the bundled libraries change
 
 running_pack = None              # the pack version in use, or None for the built-in code

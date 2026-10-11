@@ -559,7 +559,22 @@ class Translator:
             return [f"{pad}{t(f'shapesize({self.expr(s.percent, 6)} / 100)')}"]
         if isinstance(s, A.Beep):
             return [f'{pad}print("\\a", end="")  # beep']
+        if isinstance(s, A.MusicSetting):
+            return [f'{pad}_sparky_{s.kind} = {e(s.value)}']
+        if isinstance(s, A.Rest):
+            self.imports.add('time')
+            return [f'{pad}time.sleep({e(s.beats)} * 60 / globals().get("_sparky_tempo", 120))']
         if isinstance(s, A.PlaySound):
+            if s.kind in ('song', 'chord'):
+                self.imports.add('time')
+                secs = e(s.duration) if s.duration is not None else '60 / globals().get("_sparky_tempo", 120)'
+                if s.kind == 'song':
+                    return [f'{pad}for _sparky_note in ({e(s.value)}).split():',
+                            f'{pad}    if _sparky_note.upper() not in ("R", "REST", "-"):',
+                            f'{pad}        print("♪", _sparky_note)  # Python has no built-in sound',
+                            f'{pad}    time.sleep({secs})']
+                return [f'{pad}print("♪ chord", {e(s.value)})  # Python has no built-in sound',
+                        f'{pad}time.sleep({secs})']
             if s.kind == "note":
                 self.imports.add("time")
                 secs = e(s.duration) if s.duration is not None else "0.4"

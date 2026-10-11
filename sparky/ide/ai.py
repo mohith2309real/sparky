@@ -10,11 +10,12 @@ import urllib.error
 import urllib.request
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtWidgets import (QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
+from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
                              QTextBrowser, QVBoxLayout, QWidget)
 
 from ..lang.parser import HELPER_WORDS, STATEMENT_WORDS
 from .vscode import ssl_context
+from .ai_history import ChatStore
 
 ANTHROPIC_DEFAULT_MODEL = "claude-opus-5-5"
 
@@ -335,6 +336,10 @@ class AIPanel(QWidget):
         self.history = []           # [{"role", "content"}] shown in the chat
         self.worker = None
         self.reply = ""
+        self.chat_store = ChatStore(main_window.project_store.root)
+        self.chat_project = None
+        self.chat_loaded = False
+        self.clear_on_done = False
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 6, 10, 10)
@@ -345,7 +350,7 @@ class AIPanel(QWidget):
         title.setObjectName("SectionTitle")
         top.addWidget(title)
         top.addStretch(1)
-        new_chat = QPushButton("New chat")
+        new_chat = QPushButton("Clear chat")
         new_chat.setObjectName("GhostButton")
         new_chat.clicked.connect(self.new_chat)
         top.addWidget(new_chat)
@@ -360,15 +365,19 @@ class AIPanel(QWidget):
         self.who.setObjectName("FileLabel")
         self.who.setWordWrap(True)
         layout.addWidget(self.who)
+        privacy = QPushButton('What gets sent')
+        privacy.clicked.connect(self.show_privacy)
+        layout.addWidget(privacy)
 
         self.view = QTextBrowser()
         self.view.setOpenExternalLinks(True)
         layout.addWidget(self.view, 1)
 
         quick = QHBoxLayout()
-        for label, prompt in (("Explain", "Explain what my code does, step by step."),
+        for label, prompt in (("Hint", "Give me one small hint for my next step; do not give the full answer."),
+                              ("Challenge", "Make me a small coding challenge for the ideas in this program, with a goal and hints but no solution."),
                               ("Fix my error", "My program has a problem. Help me find and fix it."),
-                              ("Idea", "Give me one fun idea to add to this program.")):
+                              ("Plan", "Turn my program idea into a short plan of steps I can build.")):
             b = QPushButton(label)
             b.clicked.connect(lambda _=False, p=prompt: self.ask(p))
             quick.addWidget(b)
@@ -415,10 +424,51 @@ class AIPanel(QWidget):
     def new_chat(self):
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
+            self.clear_on_done = True
+            self.main.toast('Stopping the reply, then clearing this chat.')
+            return
         self.history = []
         self.reply = ""
         self.insert_btn.setEnabled(False)
+        self.save_chat()
         self.render()
+
+    def save_chat(self):
+        try:
+            self.chat_store.save(self.chat_project, self.history)
+        except OSError:
+            self.main.toast('Chat could not be saved on this computer.')
+
+    def switch_project(self):
+        if self.worker and self.worker.isRunning():
+            return
+        project = self.main.project_store.project_for(self.main.editor.path)
+        if self.chat_loaded and project == self.chat_project:
+            return
+        if self.chat_loaded:
+            self.save_chat()
+        self.chat_project = project
+        self.chat_loaded = True
+        self.history = self.chat_store.load(project)
+        self.reply = ''
+        self.insert_btn.setEnabled(any(m['role']=='assistant' and last_code_block(m['content']) for m in self.history))
+        self.render()
+
+    def show_privacy(self):
+        cfg = provider_config(self.main.settings)
+        dialog = QDialog(self)
+        dialog.setWindowTitle('What gets sent to the AI')
+        dialog.resize(740, 550)
+        layout = QVBoxLayout(dialog)
+        text = QPlainTextEdit(); text.setReadOnly(True)
+        text.setPlainText('Provider: '+cfg['name']+'\nDestination: '+(cfg['base_url'] or 'Anthropic API')+
+                          '\n\nWhen you press Send, Sparky sends your question, this open file (up to 60,000 characters), '
+                          'the last error, this project’s conversation, and your AI instructions. '
+                          'Your API key is used to authenticate with your provider. '
+                          'Other projects and files are not attached. Chats are saved only on this computer.\n\n'+self.context_text())
+        layout.addWidget(text)
+        close = QPushButton('Close'); close.clicked.connect(dialog.accept); layout.addWidget(close)
+        dialog.exec()
 
     def render(self):
         p = self.main.palette_colors
@@ -460,8 +510,17 @@ class AIPanel(QWidget):
         question = question.strip()
         if not question or (self.worker and self.worker.isRunning()):
             return
+        from .classroom import blocked
+        if blocked(self.main.settings,'ai'):
+            self.main.toast('AI is hidden in Classroom mode.')
+            return
+        if self.main.settings.value('offline', False, type=bool):
+            self.main.toast('Offline mode is on. Turn it off before asking the AI.')
+            return
+        self.switch_project()
         self.input.clear()
         self.history.append({"role": "user", "content": question, "shown": question})
+        self.save_chat()
         # only the newest question carries the code, so the chat stays small
         messages = [{"role": m["role"], "content": m["content"]} for m in self.history[:-1]]
         messages.append({"role": "user",
@@ -475,6 +534,7 @@ class AIPanel(QWidget):
         self.worker.chunk.connect(self.on_chunk)
         self.worker.failed.connect(self.on_failed)
         self.worker.done.connect(self.on_done)
+        self.worker.finished.connect(self.switch_project)
         self.worker.start()
 
     def on_chunk(self, text):
@@ -486,15 +546,20 @@ class AIPanel(QWidget):
         self.render()
 
     def on_done(self):
-        if self.reply:
+        if self.clear_on_done:
+            self.history = []
+            self.clear_on_done = False
+        elif self.reply:
             self.history.append({"role": "assistant", "content": self.reply})
         self.reply = ""
+        self.save_chat()
         self.render()
         self.send_btn.setEnabled(True)
         self.send_btn.setText("Send")
         last = next((m["content"] for m in reversed(self.history)
                      if m["role"] == "assistant"), "")
         self.insert_btn.setEnabled(last_code_block(last) is not None)
+        self.switch_project()
 
     def insert_code(self):
         last = next((m["content"] for m in reversed(self.history)
@@ -502,7 +567,19 @@ class AIPanel(QWidget):
         found = last_code_block(last)
         if found:
             lang, code = found
-            self.main.insert_ai_code(lang.lower(), code.rstrip("\n"))
+            dialog = QDialog(self)
+            dialog.setWindowTitle('Preview AI code')
+            dialog.resize(740, 520)
+            layout = QVBoxLayout(dialog)
+            view = QPlainTextEdit(code.rstrip('\n')); view.setReadOnly(True); layout.addWidget(view)
+            note = QLabel('Review the code before adding it. Your existing code stays until you choose Insert.')
+            note.setWordWrap(True); layout.addWidget(note)
+            row = QHBoxLayout()
+            insert = QPushButton('Insert into editor'); insert.clicked.connect(dialog.accept)
+            cancel = QPushButton('Cancel'); cancel.clicked.connect(dialog.reject)
+            row.addWidget(cancel); row.addWidget(insert); layout.addLayout(row)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.main.insert_ai_code(lang.lower(), code.rstrip("\n"))
 
     def apply_palette(self):
         self.render()

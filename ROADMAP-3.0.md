@@ -239,60 +239,60 @@ the lessons, the installers and the app icon all share the same design system.
 
 ### I. Sound and music (175–182)
 
-- [ ] 175. **Songs:** `play song "C D E F G"`.
-- [ ] 176. **Instruments:** piano, xylophone, guitar, organ, flute.
-- [ ] 177. **Chords:** `play chord "C E G"`.
-- [ ] 178. **Tempo and rests:** `tempo 120`, `rest 1`.
-- [ ] 179. **20 new sounds:** coin, splash, whoosh, meow, woof, applause and more.
-- [ ] 180. **Sound library** with previews.
-- [ ] 181. **Piano panel:** click keys to write notes into your code.
-- [ ] 182. **Sound settings:** master volume and which events make sounds.
+- [x] 175. **Songs:** `play song "C D E F G"`.
+- [x] 176. **Instruments:** piano, xylophone, guitar, organ, flute.
+- [x] 177. **Chords:** `play chord "C E G"`.
+- [x] 178. **Tempo and rests:** `tempo 120`, `rest 1`.
+- [x] 179. **20 new sounds:** coin, splash, whoosh, meow, woof, applause and more.
+- [x] 180. **Sound library** with previews.
+- [x] 181. **Piano panel:** click keys to write notes into your code.
+- [x] 182. **Sound settings:** master volume and which events make sounds.
 
 ### J. AI helper (183–192)
 
-- [ ] 183. **Fix with AI** button on errors (when AI is set up).
-- [ ] 184. **Hint mode** (default): the AI gives hints, not full answers.
-- [ ] 185. **Explain this line with AI.**
-- [ ] 186. **Make me a challenge.**
-- [ ] 187. **Idea to plan:** turn an idea into steps.
-- [ ] 188. **Chat history** saved per project, with Clear.
-- [ ] 189. **Local AI:** an Ollama preset, private and offline.
-- [ ] 190. **More presets:** OpenRouter, Groq, Gemini (OpenAI-compatible).
-- [ ] 191. **"What gets sent" panel** for privacy.
-- [ ] 192. **Preview AI code** before it goes into your file.
+- [x] 183. **Fix with AI** button on errors (when AI is set up).
+- [x] 184. **Hint mode** (default): the AI gives hints, not full answers.
+- [x] 185. **Explain this line with AI.**
+- [x] 186. **Make me a challenge.**
+- [x] 187. **Idea to plan:** turn an idea into steps.
+- [x] 188. **Chat history** saved per project, with Clear.
+- [x] 189. **Local AI:** an Ollama preset, private and offline.
+- [x] 190. **More presets:** OpenRouter, Groq, Gemini (OpenAI-compatible).
+- [x] 191. **"What gets sent" panel** for privacy.
+- [x] 192. **Preview AI code** before it goes into your file.
 
 ### K. Extensions and personalization (193–200)
 
-- [ ] 193. **Extension API v2:** extensions can add new Sparky commands, not just blocks.
-- [ ] 194. **Extension manager:** turn extensions on and off, see details.
-- [ ] 195. **Featured extensions** list (signed) from sparky-code.web.app.
-- [ ] 196. **Sparky extension packs:** Shapes+, Games and Music+.
-- [ ] 197. **Theme preview** before applying a VS Code theme.
-- [ ] 198. **Choose the code font and size.**
-- [ ] 199. **Import and export settings.**
-- [ ] 200. **Mascot customizer:** pick Sparky's color.
+- [x] 193. **Extension API v2:** extensions can add new Sparky commands, not just blocks.
+- [x] 194. **Extension manager:** turn extensions on and off, see details.
+- [x] 195. **Featured extensions** list (signed) from sparky-code.web.app.
+- [x] 196. **Sparky extension packs:** Shapes+, Games and Music+.
+- [x] 197. **Theme preview** before applying a VS Code theme.
+- [x] 198. **Choose the code font and size.**
+- [x] 199. **Import and export settings.**
+- [x] 200. **Mascot customizer:** pick Sparky's color.
 
 ### L. Accessibility and languages (201–210)
 
-- [ ] 201. **High Contrast theme.**
-- [ ] 202. **Readable mode:** extra letter and line spacing.
-- [ ] 203. **Screen-reader labels** on every control.
-- [ ] 204. **Full keyboard use** with clear focus rings.
-- [ ] 205. **Reduce motion.**
-- [ ] 206. **Color-blind-safe** syntax colors.
-- [ ] 207. **Thicker cursor** option.
-- [ ] 208. **Read aloud:** Sparky can speak console messages.
-- [ ] 209. **The app in Hindi and Telugu** (beta), with a translation-ready UI.
-- [ ] 210. **Left-handed layout** (stage on the left).
+- [x] 201. **High Contrast theme.**
+- [x] 202. **Readable mode:** extra letter and line spacing.
+- [x] 203. **Screen-reader labels** on every control.
+- [x] 204. **Full keyboard use** with clear focus rings.
+- [x] 205. **Reduce motion.**
+- [x] 206. **Color-blind-safe** syntax colors.
+- [x] 207. **Thicker cursor** option.
+- [x] 208. **Read aloud:** Sparky can speak console messages.
+- [x] 209. **Hindi and Telugu core controls** (beta), with a translation-ready UI; lessons and command words remain English.
+- [x] 210. **Left-handed layout** (stage on the left).
 
 ### M. Classroom and families (211–217)
 
-- [ ] 211. **Classroom mode:** a PIN locks settings and can hide AI and extensions.
-- [ ] 212. **Assignment files (`.sparkytask`):** instructions, starter code and checks.
-- [ ] 213. **Hand-in:** export your work with your name, ready to submit.
-- [ ] 214. **Break reminders** (optional, gentle).
-- [ ] 215. **Offline mode:** Sparky never touches the internet.
-- [ ] 216. **Time on task** (local only).
+- [x] 211. **Classroom mode:** a PIN locks settings and can hide AI and extensions.
+- [x] 212. **Assignment files (`.sparkytask`):** instructions, starter code and checks.
+- [x] 213. **Hand-in:** export your work with your name, ready to submit.
+- [x] 214. **Break reminders** (optional, gentle).
+- [x] 215. **Offline mode:** pauses AI, update, extension catalog and Arduino download requests; built-in lessons and installed tools still work.
+- [x] 216. **Time on task** (local only).
 - [ ] 217. **Teacher guide** on the website.
 
 ### N. App quality and platforms (218–226)

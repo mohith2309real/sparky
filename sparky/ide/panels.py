@@ -290,9 +290,8 @@ class ExtensionsPanel(QWidget):
         title = QLabel("EXTENSIONS")
         title.setObjectName("SectionTitle")
         layout.addWidget(title)
-        note = QLabel("Get VS Code color themes and code snippets from Open VSX. "
-                      "Sparky uses only their themes and snippets — it never runs "
-                      "code from an extension.")
+        note = QLabel("VS Code imports supply only themes and snippets. "
+                      "Local Sparky packs add blocks and commands.")
         note.setWordWrap(True)
         note.setObjectName("FileLabel")
         layout.addWidget(note)
@@ -332,7 +331,8 @@ class ExtensionsPanel(QWidget):
         remove = QPushButton("Remove")
         remove.clicked.connect(self.remove_selected)
         buttons.addWidget(remove)
-        vsix = QPushButton("Install .vsix…")
+        vsix = QPushButton("VSIX…")
+        vsix.setToolTip('Install a VS Code extension from a .vsix file')
         vsix.clicked.connect(self.install_file)
         buttons.addWidget(vsix)
         folder = QPushButton("📂")
@@ -341,6 +341,16 @@ class ExtensionsPanel(QWidget):
             QUrl.fromLocalFile(str(vscode.VSCODE_DIR))))
         buttons.addWidget(folder)
         layout.addLayout(buttons)
+        controls = QHBoxLayout()
+        self.toggle_sparky = QPushButton('Toggle pack')
+        self.toggle_sparky.setToolTip('Enable or disable the selected Sparky extension pack')
+        self.toggle_sparky.clicked.connect(self.toggle_pack)
+        details = QPushButton('Details'); details.clicked.connect(self.pack_details)
+        controls.addWidget(self.toggle_sparky); controls.addWidget(details)
+        layout.addLayout(controls)
+        featured = QPushButton('Featured Sparky packs')
+        featured.clicked.connect(self.featured_packs)
+        layout.addWidget(featured)
         self.refresh_installed()
 
     def run(self, fn, done, *args):
@@ -352,6 +362,12 @@ class ExtensionsPanel(QWidget):
         worker.start()
 
     def search(self):
+        from .classroom import blocked
+        if blocked(self.main.settings,'extensions'):
+            self.status.setText('Extensions are disabled in Classroom mode.'); return
+        if self.main.settings.value('offline', False, type=bool):
+            self.status.setText('Offline mode is on. Installed packs still work.')
+            return
         query = self.query.text().strip()
         if not query:
             return
@@ -370,14 +386,36 @@ class ExtensionsPanel(QWidget):
             self.results.addItem(item)
 
     def install_selected(self, *_):
+        from .classroom import blocked
+        if blocked(self.main.settings,'extensions'):
+            self.status.setText('Extensions are disabled in Classroom mode.'); return
         item = self.results.currentItem()
         if item is None:
             return
         r = item.data(Qt.ItemDataRole.UserRole)
+        if r.get('sparky_pack'):
+            ext = next((e for e in self.main.extension_manager.extensions if e.path.stem==r['id']),None)
+            if ext is None:
+                self.status.setText('Update Sparky to get this bundled pack.')
+            elif self.main.is_running():
+                self.status.setText('Stop your program before enabling a pack.')
+            else:
+                self.main.extension_manager.set_enabled(ext.path, True)
+                self.main.blocks.reload_categories(self.main.extension_manager.api.block_categories)
+                self.main.refresh_extension_commands()
+                self.refresh_installed()
+                self.status.setText('Enabled '+r['title']+'.')
+            return
+        if self.main.settings.value('offline', False, type=bool):
+            self.status.setText('Offline mode is on. Downloads are paused.')
+            return
         self.status.setText(f"Installing {r['name']}…")
         self.run(vscode.download_and_install, self.installed_ok, r["download"])
 
     def install_file(self):
+        from .classroom import blocked
+        if blocked(self.main.settings,'extensions'):
+            self.status.setText('Extensions are disabled in Classroom mode.'); return
         path, _ = QFileDialog.getOpenFileName(self, "Install a VS Code extension",
                                               str(Path.home()), "VS Code extensions (*.vsix)")
         if path:
@@ -408,10 +446,60 @@ class ExtensionsPanel(QWidget):
             self.installed.addItem(item)
         for ext in self.main.extension_manager.extensions:
             label = f"⚠️ {ext.name}: {ext.error}" if ext.error else \
-                f"🧩 {ext.name} — {ext.blocks_added} Sparky block(s)"
-            self.installed.addItem(QListWidgetItem(label))
+                f"🧩 {ext.name} — {ext.blocks_added} blocks · {len(ext.commands)} commands" + ('' if ext.enabled else ' · disabled')
+            item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole+1, ext)
+            self.installed.addItem(item)
+
+    def toggle_pack(self):
+        from .classroom import blocked
+        if blocked(self.main.settings,'extensions'):
+            self.status.setText('Extensions are disabled in Classroom mode.'); return
+        item = self.installed.currentItem()
+        ext = item.data(Qt.ItemDataRole.UserRole+1) if item else None
+        if ext is None:
+            self.status.setText('Choose a Sparky pack from the installed list.')
+            return
+        if self.main.is_running():
+            self.status.setText('Stop your program before changing packs.')
+            return
+        try:
+            self.main.extension_manager.set_enabled(ext.path, not ext.enabled)
+            self.main.blocks.reload_categories(self.main.extension_manager.api.block_categories)
+            self.main.refresh_extension_commands()
+            self.refresh_installed()
+        except (OSError, ValueError) as error:
+            self.status.setText(str(error))
+
+    def pack_details(self):
+        item = self.installed.currentItem()
+        ext = item.data(Qt.ItemDataRole.UserRole+1) if item else None
+        if ext is not None:
+            self.status.setText(ext.name+' by '+ext.author+'\n'+ext.description+'\nCommands: '+(', '.join(ext.commands) or 'none')+'\n'+str(ext.path))
+
+    def featured_packs(self):
+        from .classroom import blocked
+        if blocked(self.main.settings,'extensions'):
+            self.status.setText('Extensions are disabled in Classroom mode.'); return
+        if self.main.settings.value('offline', False, type=bool):
+            self.status.setText('Offline mode is on. Installed packs still work.')
+            return
+        from .feeds import fetch
+        self.status.setText('Checking the signed catalog…')
+        self.run(fetch, self.show_featured, 'extensions')
+
+    def show_featured(self, items):
+        self.results.clear()
+        for value in items:
+            item=QListWidgetItem(value['title']+'\n'+value['description'])
+            item.setData(Qt.ItemDataRole.UserRole, dict(value,sparky_pack=True))
+            self.results.addItem(item)
+        self.status.setText('Verified catalog. Double-click a pack to enable its bundled commands.')
 
     def remove_selected(self):
+        from .classroom import blocked
+        if blocked(self.main.settings,'extensions'):
+            self.status.setText('Extensions are disabled in Classroom mode.'); return
         item = self.installed.currentItem()
         ext_id = item.data(Qt.ItemDataRole.UserRole) if item else None
         if ext_id:

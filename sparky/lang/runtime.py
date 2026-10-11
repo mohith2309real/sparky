@@ -112,6 +112,14 @@ class Runtime:
     def save_value(self, name, value):
         self._memory[name] = value
 
+    def play_music(self, instrument, notes, duration):
+        """New music API; older runtimes still get the original sound signature."""
+        for midi in notes:
+            # The old numbered notes use C major. Pick the closest one.
+            major = [60+12*(i//7)+(0,2,4,5,7,9,11)[i%7] for i in range(14)]
+            number = min(range(14), key=lambda i: abs(major[i]-midi))+1
+            self.play_sound('', number, duration)
+
     def load_value(self, name):
         return self._memory.get(name)
 
@@ -201,13 +209,13 @@ class ConsoleRuntime(Runtime):
         return self.memory.load(name)
 
 
-def run_console(source, runtime=None, max_steps=None, base_dir=None):
+def run_console(source, runtime=None, max_steps=None, base_dir=None, commands=None):
     """Parse and run a program in the terminal. Returns the interpreter."""
     from .parser import parse
     from .interpreter import Interpreter
 
     runtime = runtime or ConsoleRuntime()
-    interpreter = Interpreter(parse(source), runtime, base_dir=base_dir, source=source)
+    interpreter = Interpreter(parse(source, commands), runtime, base_dir=base_dir, source=source, commands=commands)
     steps = 0
     for tick in interpreter.run():
         if tick[0] == "wait":

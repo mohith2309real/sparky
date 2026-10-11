@@ -241,6 +241,15 @@ class BlockPalette(QScrollArea):
         self.buttons = []
         self.build(self.palette)
 
+    def reload_categories(self, categories):
+        self.extra_categories = list(categories)
+        while self.layout_.count():
+            item = self.layout_.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self.buttons = []
+        self.build(self.palette)
+
     def build(self, palette):
         title = QLabel("BLOCKS")
         title.setObjectName("SectionTitle")

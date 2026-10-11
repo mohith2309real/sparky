@@ -184,7 +184,20 @@ def main():
             sys.exit(1)
         try:
             from pathlib import Path
-            run_console(source, base_dir=Path(args[1]).resolve().parent)
+            from .ide.extension_manager import ExtensionManager
+            from .paths import prepare_user_dirs
+            prepare_user_dirs()
+            extensions = ExtensionManager()
+            import os
+            if os.environ.get('SPARKY_SAFE_MODE')!='1':
+                try:
+                    from .ide.prefs import open_settings
+                    from .ide.classroom import blocked
+                    hidden=blocked(open_settings(),'extensions')
+                except ImportError:
+                    hidden=False
+                if not hidden: extensions.discover()
+            run_console(source, base_dir=Path(args[1]).resolve().parent, commands=extensions.api.commands)
         except SparkyError as err:
             print(err.pretty())
             sys.exit(1)

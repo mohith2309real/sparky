@@ -4,10 +4,10 @@ import platform
 import sys
 
 from PyQt6.QtCore import QT_VERSION_STR, QSize, Qt, QUrl
-from PyQt6.QtGui import QDesktopServices, QGuiApplication
-from PyQt6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QDialog, QFormLayout,
+from PyQt6.QtGui import QColor, QDesktopServices, QFont, QGuiApplication
+from PyQt6.QtWidgets import (QButtonGroup, QCheckBox, QComboBox, QColorDialog, QDialog, QFileDialog, QFontComboBox, QFormLayout,
                              QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
-                             QPlainTextEdit, QPushButton, QRadioButton, QScrollArea, QSlider,
+                             QPlainTextEdit, QPushButton, QRadioButton, QScrollArea, QSlider, QTextBrowser,
                              QSpinBox, QStackedWidget, QVBoxLayout, QWidget)
 
 from .. import __version__
@@ -16,7 +16,7 @@ from .widgets import text_button
 
 SECTIONS = [("General", "settings"), ("Editor", "code"), ("Stage & sounds", "sound"),
             ("Languages", "python"), ("AI", "ai"), ("Updates", "update"),
-            ("Accessibility", "keyboard"), ("Privacy", "shield"), ("About", "info")]
+            ("Accessibility", "keyboard"), ("Classroom", "learn"), ("Privacy", "shield"), ("About", "info")]
 SCALES = [90, 100, 110, 125, 150]
 
 
@@ -73,6 +73,7 @@ class SettingsDialog(QDialog):
         sl.addSpacing(8)
         self.nav = QListWidget()
         self.nav.setObjectName("SettingsNav")
+        self.nav.setAccessibleName('Settings sections')
         self.nav.setIconSize(QSize(18, 18))
         sl.addWidget(self.nav, 1)
         root.addWidget(side)
@@ -96,6 +97,7 @@ class SettingsDialog(QDialog):
                     "Stage & sounds": self.page_stage, "Languages": self.page_languages,
                     "AI": self.page_ai, "Updates": self.page_updates,
                     "Accessibility": self.page_access, "Privacy": self.page_privacy,
+                    "Classroom": self.page_classroom,
                     "About": self.page_about}
         p = main_window.palette_colors
         for name, icon_name in SECTIONS:
@@ -142,6 +144,13 @@ class SettingsDialog(QDialog):
         current = design.OLD_NAMES.get(m.theme_key, m.theme_key)
         self.theme.setCurrentIndex(max(0, self.theme.findData(current)))
         form.addRow("Theme", self.theme)
+        preview = text_button('Preview theme')
+        preview.clicked.connect(self.preview_theme)
+        form.addRow('', preview)
+        self.mascot_color = self.settings.value('mascot_color', '#e0805f', type=str)
+        mascot_button = text_button('Pick Sparky’s color')
+        mascot_button.clicked.connect(self.pick_mascot_color)
+        form.addRow('Sparky', mascot_button)
 
         mode_row = QHBoxLayout()
         self.mode_group = QButtonGroup(self)
@@ -168,10 +177,18 @@ class SettingsDialog(QDialog):
         tour = text_button("Take the tour now", icon="tour")
         tour.clicked.connect(lambda: (self.accept(), m.start_tour()))
         form.addRow("Tour", tour)
+        row=QHBoxLayout()
+        export=text_button('Export settings'); export.clicked.connect(self.export_preferences)
+        restore=text_button('Import settings'); restore.clicked.connect(self.import_preferences)
+        row.addWidget(export); row.addWidget(restore); form.addRow('Preferences',row)
 
     def page_editor(self, layout):
         m = self.main
         form = self.form(layout)
+        self.code_font = QFontComboBox()
+        self.code_font.setFontFilters(QFontComboBox.FontFilter.MonospacedFonts)
+        self.code_font.setCurrentFont(QFont(m.code_font or 'JetBrains Mono'))
+        form.addRow('Code font', self.code_font)
         self.font_size = QSpinBox()
         self.font_size.setRange(10, 28)
         self.font_size.setValue(m.font_size)
@@ -184,6 +201,53 @@ class SettingsDialog(QDialog):
         form.addRow("", self.autosave)
         layout.addWidget(note("More editor tools (auto <b>end</b>, live error underlines, "
                               "number scrubbing…) arrive in the next 3.0 alphas."))
+
+    def preview_theme(self):
+        from .editor import CodeEditor
+        from . import languages
+        from .theme import LIGHT, DARK, build_qss
+        key=self.theme.currentData()
+        palette=vscode.theme_palette(key,LIGHT,DARK) if key.startswith('vscode:') else design.theme(key)
+        if palette is None:
+            self.main.toast('This theme could not be previewed.')
+            return
+        palette=design.complete(palette)
+        dialog=QDialog(self); dialog.setWindowTitle('Theme preview'); dialog.resize(700,430)
+        dialog.setStyleSheet(build_qss(palette)); layout=QVBoxLayout(dialog)
+        title=QLabel(palette.get('name',self.theme.currentText())); title.setObjectName('Heading'); layout.addWidget(title)
+        editor=CodeEditor(palette,languages.BY_ID['sparky']); editor.setReadOnly(True)
+        editor.setPlainText('# A little code, a whole new world\nsay "Hello, Sparky!"\nrepeat 4 times\n  move 80\n  turn 90\nend\n')
+        layout.addWidget(editor,1)
+        close=text_button('Close'); close.clicked.connect(dialog.accept); layout.addWidget(close)
+        dialog.exec()
+
+    def pick_mascot_color(self):
+        color=QColorDialog.getColor(QColor(self.mascot_color),self,'Sparky’s color')
+        if color.isValid(): self.mascot_color=color.name()
+
+    def export_preferences(self):
+        from .preferences_io import export_settings
+        path,_=QFileDialog.getSaveFileName(self,'Export preferences','Sparky settings.json','Settings (*.json)')
+        if path:
+            try:
+                export_settings(self.settings,path)
+                self.main.toast('Preferences exported. API keys and classroom locks are excluded.')
+            except (OSError,ValueError) as error:
+                self.main.toast('Could not export preferences: '+str(error))
+
+    def import_preferences(self):
+        from .preferences_io import import_settings
+        path,_=QFileDialog.getOpenFileName(self,'Import preferences','','Settings (*.json)')
+        if path:
+            try:
+                import_settings(self.settings,path)
+                self.main.code_font=self.settings.value('code_font','',type=str)
+                self.main.load_settings(); self.main.apply_theme(); self.main.set_font_size_all(self.main.font_size)
+                self.main.home_page.refresh()
+                self.main.toast('Preferences imported. Reopen Settings to see them.')
+                self.reject()
+            except (OSError,ValueError) as error:
+                self.main.toast('Could not import preferences: '+str(error))
 
     def page_stage(self, layout):
         m, s = self.main, self.settings
@@ -220,6 +284,12 @@ class SettingsDialog(QDialog):
         self.volume.setRange(0, 100)
         self.volume.setValue(int(m.sound_bank.volume * 100))
         form.addRow("Volume", self.volume)
+        self.sound_events = {}
+        for kind, label in [('run', 'When a program starts'), ('done', 'When a program finishes'), ('error', 'When a program has an error')]:
+            box = QCheckBox(label)
+            box.setChecked(m.sound_bank.events.get(kind, True))
+            self.sound_events[kind] = box
+            form.addRow('', box)
 
     def pick_stage_color(self):
         from PyQt6.QtGui import QColor
@@ -364,6 +434,17 @@ class SettingsDialog(QDialog):
         self.reduce_motion = QCheckBox("Reduce motion (no sliding or fading)")
         self.reduce_motion.setChecked(s.value("reduce_motion", False, type=bool))
         form.addRow("", self.reduce_motion)
+        self.access_options = {}
+        self.app_language=QComboBox()
+        for label,key in [('English','en'),('हिन्दी (beta)','hi'),('తెలుగు (beta)','te')]: self.app_language.addItem(label,key)
+        self.app_language.setCurrentIndex(max(0,self.app_language.findData(s.value('app_language','en',type=str))))
+        form.addRow('App language',self.app_language)
+        form.addRow('',note('Hindi and Telugu translate the core UI in this beta. Lessons and code stay in English.'))
+        for key,label in [('readable','Readable mode: more letter spacing and larger line height'),
+                          ('thick_cursor','Thicker text cursor'),('color_blind','Color-blind-safe syntax colors'),
+                          ('read_aloud','Read console messages aloud'),('left_handed','Left-handed layout: stage on the left')]:
+            box=QCheckBox(label); box.setChecked(s.value(key,False,type=bool))
+            self.access_options[key]=box; form.addRow('',box)
         contrast = text_button("Use the High Contrast theme")
         contrast.clicked.connect(lambda: self.theme.setCurrentIndex(self.theme.findData("contrast")))
         form.addRow("", contrast)
@@ -379,7 +460,44 @@ class SettingsDialog(QDialog):
             "Sparky connects to the internet only for: update checks (sparky-code.web.app and "
             "huggingface.co), the AI helper (only the provider you choose, only when you ask), "
             "and finding VS Code themes (open-vsx.org). It never sends your programs anywhere "
-            "unless you ask the AI helper about them. There are no accounts and no tracking."))
+            "unless you ask the AI helper about them. There are no accounts or remote analytics. "
+            "Time on task is stored only on this computer."))
+
+    def page_classroom(self, layout):
+        s=self.settings; form=self.form(layout); self.pending_pin=None
+        self.classroom_enabled=QCheckBox('Classroom mode: lock Settings with a teacher PIN')
+        self.classroom_enabled.setChecked(s.value('classroom/enabled',False,type=bool)); form.addRow('',self.classroom_enabled)
+        self.hide_ai=QCheckBox('Hide AI'); self.hide_ai.setChecked(s.value('classroom/hide_ai',True,type=bool)); form.addRow('',self.hide_ai)
+        self.hide_extensions=QCheckBox('Hide and disable extensions'); self.hide_extensions.setChecked(s.value('classroom/hide_extensions',True,type=bool)); form.addRow('',self.hide_extensions)
+        pin=text_button('Set or change teacher PIN'); pin.clicked.connect(self.choose_pin); form.addRow('PIN',pin)
+        self.pin_status=QLabel('A PIN is saved.' if s.value('classroom/pin_hash','',type=str) else 'Set a PIN before enabling Classroom mode.')
+        form.addRow('',self.pin_status)
+        self.track_time=QCheckBox('Track time on task on this computer only')
+        self.track_time.setChecked(s.value('time_tracking',True,type=bool)); form.addRow('',self.track_time)
+        self.break_reminders=QCheckBox('Gentle break reminders')
+        self.break_reminders.setChecked(s.value('break_reminders',False,type=bool)); form.addRow('',self.break_reminders)
+        self.break_minutes=QSpinBox(); self.break_minutes.setRange(5,60); self.break_minutes.setSuffix(' minutes')
+        self.break_minutes.setValue(s.value('break_minutes',20,type=int)); form.addRow('Remind after',self.break_minutes)
+        form.addRow('Time on task',QLabel(f'{int(self.main.time_tracker.seconds)//60} minutes on this computer'))
+        guide=text_button('Teacher guide'); guide.clicked.connect(self.teacher_guide)
+        form.addRow('',guide)
+        layout.addWidget(note('Open .sparkytask assignments from File → Open assignment. Use Hand in to save a named ZIP with code and assets. The PIN is a local app lock, not an operating-system security boundary.'))
+
+    def teacher_guide(self):
+        from ..paths import EXAMPLES_DIR
+        dialog=QDialog(self); dialog.setWindowTitle('Teacher guide'); dialog.resize(760,600)
+        layout=QVBoxLayout(dialog); text=QTextBrowser()
+        text.setMarkdown((EXAMPLES_DIR/'Assignments'/'TEACHER-GUIDE.md').read_text(encoding='utf-8'))
+        layout.addWidget(text); close=QPushButton('Close'); close.clicked.connect(dialog.accept); layout.addWidget(close)
+        dialog.exec()
+
+    def choose_pin(self):
+        from PyQt6.QtWidgets import QInputDialog
+        pin,ok=QInputDialog.getText(self,'Teacher PIN','Choose 4 to 12 digits:',QLineEdit.EchoMode.Password)
+        if not ok: return
+        if not pin.isdigit() or not 4<=len(pin)<=12:
+            self.pin_status.setText('Choose 4 to 12 digits.'); return
+        self.pending_pin=pin; self.pin_status.setText('New PIN will be saved when you press Save.')
 
     def page_about(self, layout):
         from .dialogs import open_site
@@ -459,6 +577,9 @@ class SettingsDialog(QDialog):
                              " Your key is saved only on this computer, in Sparky's settings.")
 
     def load_models(self):
+        if self.settings.value('offline', False, type=bool):
+            self.ai_note.setText('Offline mode is on. Model loading is paused.')
+            return
         cfg = {"name": self.provider.currentText(),
                "kind": self.ai.PROVIDERS[self.provider.currentText()][0],
                "base_url": self.base_url.text().strip() or
@@ -487,6 +608,20 @@ class SettingsDialog(QDialog):
 
     def apply_and_close(self):
         w, s = self.main, self.settings
+        if self.classroom_enabled.isChecked() and not self.pending_pin and not s.value('classroom/pin_hash','',type=str):
+            self.pin_status.setText('Set a teacher PIN before enabling Classroom mode.')
+            self.pages.setCurrentIndex([n for n,_ in SECTIONS].index('Classroom')); return
+        if self.pending_pin:
+            from .classroom import set_pin
+            set_pin(s,self.pending_pin)
+        s.setValue('classroom/enabled',self.classroom_enabled.isChecked())
+        s.setValue('classroom/hide_ai',self.hide_ai.isChecked()); s.setValue('classroom/hide_extensions',self.hide_extensions.isChecked())
+        s.setValue('time_tracking',self.track_time.isChecked()); s.setValue('break_reminders',self.break_reminders.isChecked())
+        s.setValue('break_minutes',self.break_minutes.value())
+        w.code_font = self.code_font.currentFont().family()
+        s.setValue('code_font', w.code_font)
+        s.setValue('mascot_color', self.mascot_color)
+        w.set_mascot_color(self.mascot_color)
         w.speed.setValue(self.speed.value())
         w.set_font_size_all(self.font_size.value())
         w.completions_enabled = self.autocomplete.isChecked()
@@ -495,6 +630,7 @@ class SettingsDialog(QDialog):
             editor.completions_enabled = w.completions_enabled
         w.sound_bank.enabled = self.sounds.isChecked()
         w.sound_bank.volume = self.volume.value() / 100
+        w.sound_bank.events = {kind: box.isChecked() for kind, box in self.sound_events.items()}
         s.setValue("stage_grid", self.grid.isChecked())
         w.set_grid(self.grid.isChecked())
         s.setValue("stage_color", self.stage_color.currentData() or "")
@@ -516,12 +652,19 @@ class SettingsDialog(QDialog):
         s.setValue("updates/auto_check", self.auto_check.isChecked())
         s.setValue("updates/auto_download", self.auto_download.isChecked())
         s.setValue("offline", self.offline.isChecked())
+        if self.offline.isChecked():
+            w.updates.cancel()
+            if w.ai_panel.worker and w.ai_panel.worker.isRunning(): w.ai_panel.worker.cancel()
         s.setValue("reduce_motion", self.reduce_motion.isChecked())
+        for key,box in self.access_options.items(): s.setValue(key,box.isChecked())
+        s.setValue('app_language',self.app_language.currentData())
+        w.apply_accessibility()
         w.set_reduce_motion(self.reduce_motion.isChecked())
         w.set_mode("kid" if self.kid.isChecked() else "pro")
         w.set_theme(self.theme.currentData())
         w.save_settings()
         w.ai_panel.refresh_header()
+        w.refresh_ai_actions()
         self.accept()
 
 

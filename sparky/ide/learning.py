@@ -31,20 +31,29 @@ class Capture(Runtime):
         self.event_queue = list(events)
         self.polls = 0
         self.output, self.lines, self.shapes, self.stamps = [], [], [], []
+        self.output_chars = 0
+        self.shape_points = 0
 
     def say(self, text):
+        self.output_chars += len(text)
+        if len(self.output)>=1000 or self.output_chars>1000000:
+            raise ValueError('The checker output is too large. Make the loop finish sooner.')
         self.output.append(text)
 
     def ask(self, prompt):
         return next(self.answers, None)
 
     def line(self, x1, y1, x2, y2, color, width):
+        if len(self.lines)>=10000: raise ValueError('The checker drawing is too large.')
         self.lines.append((x1, y1, x2, y2))
 
     def shape(self, points, closed, pen, fill):
+        self.shape_points += len(points)
+        if self.shape_points>100000: raise ValueError('The checker drawing is too large.')
         self.shapes.append((points, fill))
 
     def stamp_sprite(self, snapshot):
+        if len(self.stamps)>=1000: raise ValueError('The checker has too many stamps.')
         self.stamps.append(snapshot)
 
     def clear(self):
