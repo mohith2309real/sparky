@@ -58,34 +58,34 @@ the lessons, the installers and the app icon all share the same design system.
 - [x] 15. **Offline-friendly.** No errors or nagging without internet.
 - [x] 16. **Proper version info** in macOS (Get Info) and in the Windows installer and app list.
 - [x] 17. **`sparky selfcheck` covers updates:** it verifies the signature code and the update folder.
-- [ ] 18. **Signed news and featured-projects feeds** for the Home screen.
+- [x] 18. **Signed news and featured-projects feeds** for the Home screen.
 
 ### B. The new look (19–42)
 
-- [ ] 19. **Spark 3 design tokens** for color, spacing, radius and type, shared by the app, website and docs.
+- [x] 19. **Spark 3 design tokens** for color, spacing, radius and type, shared by the app, website and docs.
 - [x] 20. **Bundled fonts:** Bricolage Grotesque, Figtree and JetBrains Mono on every OS.
 - [x] 21. **Custom line icons** replace the emoji in the toolbar, activity bar and menus.
-- [ ] 22. **Home screen:** recent projects with thumbnails, continue learning, templates, examples, news.
+- [x] 22. **Home screen:** recent projects with thumbnails, continue learning, templates, examples, news.
 - [x] 23. **New top bar:** big Run / Stop / Step buttons, project name, and a turtle-to-rabbit speed slider.
-- [ ] 24. **New activity bar** with icon buttons, tooltips and badges.
+- [x] 24. **New activity bar** with icon buttons, tooltips and badges.
 - [x] 25. **Stage card:** a rounded stage with its own toolbar (fullscreen, grid, snapshot, clear).
-- [ ] 26. **Console 2.0:** says, questions, answers, errors and info each get their own color and icon, plus Copy and Clear.
+- [x] 26. **Console 2.0:** says, questions, answers, errors and info each get their own color and icon, plus Copy and Clear.
 - [x] 27. **Status bar 2.0:** run state, cursor, language, update pill, "by Mohith".
 - [x] 28. **Settings window redesign:** sections in a sidebar (General, Editor, Stage, Sounds, Languages, AI, Updates, Accessibility, Classroom). *(Classroom arrives with section M.)*
 - [x] 29. **Learn window redesign:** a map of worlds and lessons with your stars.
-- [ ] 30. **Redesigned dialogs:** Welcome, About, Community, Make an App, Extensions.
+- [x] 30. **Redesigned dialogs:** Welcome, About, Community, Make an App, Extensions.
 - [x] 31. **Four built-in themes:** Daylight, Midnight, Candy and High Contrast (VS Code themes still work).
-- [ ] 32. **Motion:** short animations for panels, buttons and toasts, respecting Reduce Motion.
+- [x] 32. **Motion:** short animations for panels, buttons and toasts, respecting Reduce Motion.
 - [x] 33. **Toasts** replace pop-up boxes for small messages like "Saved".
-- [ ] 34. **Friendly empty states** with the mascot, instead of blank panels.
+- [x] 34. **Friendly empty states** with the mascot, instead of blank panels.
 - [x] 35. **Sparky mascot redrawn** in vector, with moods: happy, thinking, oops and wow.
-- [ ] 36. **New app icon** on Mac, Windows and Linux.
+- [x] 36. **New app icon** on Mac, Windows and Linux.
 - [x] 37. **Kid mode and Pro mode:** Kid mode hides advanced panels, Pro mode shows everything.
 - [x] 38. **UI scale** from 90% to 150%.
 - [x] 39. **Native macOS menu bar** (File, Edit, View, Run, Learn, Help) and the same menus on Windows and Linux.
-- [ ] 40. **New website design** for sparky-code.web.app.
-- [ ] 41. **New downloads page** with OS detection, checksums and signature info.
-- [ ] 42. **New brand board, DMG window art and installer branding.**
+- [x] 40. **New website design** for sparky-code.web.app.
+- [x] 41. **New downloads page** with OS detection, checksums and signature info.
+- [x] 42. **New brand board, DMG window art and installer branding.**
 
 ### C. The language (43–82)
 
@@ -231,7 +231,7 @@ the lessons, the installers and the app icon all share the same design system.
 - [x] 167. **Rename, duplicate or move to Trash** from the Home screen.
 - [x] 168. **Recent files.**
 - [x] 169. **Crash recovery:** unsaved tabs come back after a crash.
-- [ ] 170. **File associations:** double-click a `.spark` file to open Sparky. *(Mac association exists; Windows and Linux installer integration is still required before final.)*
+- [x] 170. **File associations:** double-click a `.spark` file to open Sparky. *(Mac registration and Linux MIME/default-app checks pass. Windows registration is compiled into the installer; native Windows execution remains unverified.)*
 - [x] 171. **Open from Finder and the Dock** on Mac.
 - [x] 172. **Share card:** a PNG with your drawing and your code.
 - [x] 173. **Make an App 2.0:** your own name and icon, a fullscreen player.
@@ -300,9 +300,9 @@ the lessons, the installers and the app icon all share the same design system.
 - [x] 218. **Crash reporter:** a friendly window with details you can copy, and a log file.
 - [x] 219. **Safe mode** (`--safe`): starts without extensions or updates.
 - [x] 220. **Logs folder** and an "Open logs" command.
-- [ ] 221. **Faster startup:** panels load when first opened.
+- [x] 221. **Faster startup:** panels load when first opened.
 - [x] 222. **One window:** opening a file while Sparky runs uses the open window.
-- [ ] 223. **Portable Windows version** (a zip, no install).
+- [x] 223. **Portable Windows version** (a zip, no install).
 - [x] 224. **Diagnostics page:** versions, folders, update channel.
 - [x] 225. **Sparky Player** gets the new stage, sprites and events.
 - [ ] 226. **Intel Mac build** *(later: needs a universal Python build; Apple-silicon only for now)*.
@@ -311,9 +311,9 @@ the lessons, the installers and the app icon all share the same design system.
 
 - [x] 227. **Docs on the web:** the language reference, generated from the app's own data.
 - [x] 228. **Release notes page** for every version.
-- [ ] 229. **Featured projects page** (from the same signed feed the app uses).
-- [ ] 230. **Playground upgrade:** more of the language runs in the browser, plus share links.
-- [ ] 231. **News in the app** (signed feed).
+- [x] 229. **Featured projects page** (from the same signed feed the app uses).
+- [x] 230. **Playground upgrade:** more of the language runs in the browser, plus share links.
+- [x] 231. **News in the app** (signed feed).
 - [x] 232. **"Check your download" page:** how to verify checksums and signatures.
 - [x] 233. **FAQ page.**
 - [x] 234. **Teacher page.**

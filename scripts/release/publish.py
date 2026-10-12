@@ -27,6 +27,7 @@ FULL_KINDS = {
     "Sparky-Linux-x86_64.tar.gz": ("linux-x86_64", "linux-tar"),
     "Sparky-Linux-arm64.tar.gz": ("linux-arm64", "linux-tar"),
 }
+EXTRA_DOWNLOADS={'Sparky-Installer.dmg','Sparky-Portable.zip','SHA256SUMS.txt','SHA256SUMS.txt.sig'}
 
 
 def upload(local, remote):
@@ -62,19 +63,23 @@ def main():
             payload["pack"]["min_version"] = args.min_version
     if args.full:
         full = {}
+        downloads={}
         for path in sorted(Path(args.full).iterdir()):
-            if path.name not in FULL_KINDS:
+            if path.name not in FULL_KINDS and path.name not in EXTRA_DOWNLOADS:
                 continue
-            platform, kind = FULL_KINDS[path.name]
             # stable replaces the website's downloads; beta files go in their own folder
             remote = (f"download/{path.name}" if args.channel == "stable"
                       else f"beta/{ver}/{path.name}")
             url = HF_BASE + remote
             if not args.dry_run:
                 url = upload(path, remote)
-            full[platform] = {"url": url, "sha256": sha256(path),
-                              "size": path.stat().st_size, "kind": kind}
+            entry={"url":url,"sha256":sha256(path),"size":path.stat().st_size}
+            downloads[path.name]=entry
+            if path.name in FULL_KINDS:
+                platform,kind=FULL_KINDS[path.name]
+                full[platform]=dict(entry,kind=kind)
         payload["full"] = full
+        payload['downloads']=downloads
     target = SITES / "sparky" / "updates" / f"{args.channel}.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(envelope(payload), indent=1) + "\n", encoding="utf-8")

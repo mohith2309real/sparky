@@ -152,7 +152,10 @@ class CommunityDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 22, 24, 18)
         layout.setSpacing(10)
-        layout.addWidget(_label("Share your creations", "Heading"))
+        heading = QHBoxLayout()
+        heading.addWidget(_face(64, 'happy'))
+        heading.addWidget(_label("Made to be shared", "Heading"), 1)
+        layout.addLayout(heading)
         layout.addWidget(_label(
             "Every Sparky program is a little <b>.spark</b> file — send it to a friend and "
             "they can open it here. Or use <b>Make an App</b> to turn it into a "
@@ -161,10 +164,16 @@ class CommunityDialog(QDialog):
 
         self.gallery_list = QListWidget()
         layout.addWidget(self.gallery_list, 1)
+        self.empty = QWidget()
+        empty_layout = QVBoxLayout(self.empty)
+        empty_layout.addWidget(_face(72, 'thinking'))
+        empty_layout.addWidget(_label('Your gallery is waiting for its first creation.<br>Save a .spark file here, or add one from a friend.', 'Muted', center=True))
+        layout.addWidget(self.empty)
 
         row = QHBoxLayout()
         open_button = text_button("Open in editor", object_name="Primary")
         open_button.clicked.connect(self.open_selected)
+        self.open_button = open_button
         folder_button = text_button("Gallery folder", icon="files")
         folder_button.clicked.connect(self.open_folder)
         site_button = text_button("Mohith's website", icon="globe")
@@ -178,8 +187,10 @@ class CommunityDialog(QDialog):
         GALLERY.mkdir(parents=True, exist_ok=True)
         self.gallery_list.clear()
         programs = sorted(GALLERY.glob("*.spark"))
+        self.empty.setVisible(not programs)
+        self.gallery_list.setVisible(bool(programs))
+        self.open_button.setEnabled(bool(programs))
         if not programs:
-            self.gallery_list.addItem("(empty — drop .spark files into the gallery folder)")
             self.gallery_list.setEnabled(False)
         else:
             self.gallery_list.setEnabled(True)

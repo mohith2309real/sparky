@@ -6,7 +6,7 @@ ARCH="$1"
 export DEBIAN_FRONTEND=noninteractive QT_QPA_PLATFORM=offscreen
 apt-get update -qq >/dev/null
 apt-get install -y -qq python3 libgl1 libegl1 libxkbcommon0 libfontconfig1 libdbus-1-3 \
-  libglib2.0-0 >/dev/null 2>&1
+  libglib2.0-0 shared-mime-info desktop-file-utils xdg-utils >/dev/null 2>&1
 install_dir=$(mktemp -d /tmp/sparky-platform-XXXXXX)
 cd "$install_dir"
 tar -xzf "/t/Sparky-Linux-$ARCH.tar.gz"
@@ -21,6 +21,11 @@ echo "--- the IDE"
 ./sparky selfcheck ui "/t/shot-$ARCH.png" 2>&1 | grep "lines drawn"
 echo "--- install.sh"
 ./install.sh >/dev/null && ~/.local/bin/sparky selfcheck 2>&1 | tail -1
+echo "--- file associations"
+test "$(xdg-mime query filetype /tmp/t.spark)" = "text/x-sparky"
+test "$(xdg-mime query default text/x-sparky)" = "sparky.desktop"
+grep -q 'Exec=.*%f' "$HOME/.local/share/applications/sparky.desktop"
+echo "program MIME type, default app and file argument: ok"
 echo "--- over-the-air update"
 (cd /t/web && python3 -m http.server 8899 >/dev/null 2>&1 &)
 sleep 1

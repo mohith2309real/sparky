@@ -4,15 +4,31 @@
 import datetime
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt, QThread, QUrl, pyqtSignal
+from PyQt6.QtGui import QPixmap, QDesktopServices
 from PyQt6.QtWidgets import (QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QMenu,
                              QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
 from . import mascot, whats_new
 from .widgets import IconLabel, text_button
 from .. import __version__
-from ..paths import EXAMPLES_DIR
+from ..paths import EXAMPLES_DIR, USER_DIR
+
+
+class FeedWorker(QThread):
+    loaded = pyqtSignal(object)
+    failed = pyqtSignal()
+
+    def run(self):
+        from .feeds import fetch
+        try:
+            results = {}
+            for kind in ('news', 'projects'):
+                if self.isInterruptionRequested(): return
+                results[kind] = fetch(kind, USER_DIR / '.feeds')
+            if not self.isInterruptionRequested(): self.loaded.emit(results)
+        except Exception:
+            if not self.isInterruptionRequested(): self.failed.emit()
 
 
 def greeting(now=None):
@@ -81,6 +97,9 @@ class HomePage(QScrollArea):
     def __init__(self, main_window):
         super().__init__()
         self.main = main_window
+        self.feed_worker = None
+        from .feeds import cached
+        self.feed_items = {kind: cached(kind, USER_DIR / '.feeds') for kind in ('news', 'projects')}
         self.setObjectName("HomePage")
         self.setWidgetResizable(True)
         self.setFrameShape(QFrame.Shape.NoFrame)
@@ -240,6 +259,30 @@ class HomePage(QScrollArea):
         lower.addLayout(right, 2)
         self.column.addLayout(lower)
 
+        feed_head = QHBoxLayout()
+        feed_head.addWidget(self.section('News & ideas'))
+        feed_head.addStretch(1)
+        refresh = text_button('Refresh news')
+        refresh.setEnabled(not main.settings.value('offline', False, type=bool) and
+                           not (self.feed_worker and self.feed_worker.isRunning()))
+        refresh.clicked.connect(self.refresh_feeds)
+        feed_head.addWidget(refresh)
+        self.column.addLayout(feed_head)
+        self.feed_refresh_button = refresh
+        for item in self.feed_items['news'][:3]:
+            card = HomeCard('info', item['title'], item['description'])
+            if item.get('url'):
+                card.clicked.connect(lambda url=item['url']: QDesktopServices.openUrl(QUrl(url)))
+            self.column.addWidget(card)
+        featured = QGridLayout()
+        for i, item in enumerate(self.feed_items['projects'][:3]):
+            card = HomeCard('code', item['title'], item['description'] + ' Open a copy to try it.')
+            card.clicked.connect(lambda entry=item: self.open_featured(entry))
+            featured.addWidget(card, 0, i)
+        self.column.addLayout(featured)
+        if not any(self.feed_items.values()):
+            self.column.addWidget(QLabel('No news yet. Try one of the examples below.'))
+
         self.column.addWidget(self.section("Examples"))
         examples = sorted(EXAMPLES_DIR.rglob('*.spark')) if EXAMPLES_DIR.is_dir() else []
         categories = sorted({p.parent.name if p.parent != EXAMPLES_DIR else 'Basics' for p in examples})
@@ -265,6 +308,26 @@ class HomePage(QScrollArea):
         label = QLabel(text.upper())
         label.setObjectName("CardTitle")
         return label
+
+    def refresh_feeds(self):
+        if self.main.settings.value('offline', False, type=bool):
+            self.main.toast('Turn off Offline mode to refresh news.'); return
+        if self.feed_worker and self.feed_worker.isRunning(): return
+        self.feed_worker = FeedWorker(self)
+        self.feed_worker.loaded.connect(self.feeds_loaded)
+        self.feed_worker.failed.connect(lambda: self.main.toast('News could not refresh. Your saved ideas are still here.'))
+        self.feed_worker.finished.connect(lambda: self.feed_refresh_button.setEnabled(
+            not self.main.settings.value('offline', False, type=bool)))
+        self.feed_refresh_button.setEnabled(False)
+        self.feed_worker.start()
+
+    def feeds_loaded(self, items):
+        self.feed_items = items
+        self.refresh()
+
+    def open_featured(self, item):
+        self.main.new_tab(item['code'], None, None, item['title'] + '.spark')
+        self.main.show_workspace()
 
     def change_category(self, key):
         self.main.settings.setValue('example_category', key)

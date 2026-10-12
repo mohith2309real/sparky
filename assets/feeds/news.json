@@ -1,0 +1,6 @@
+{
+ "schema": 1,
+ "key": "sparky-2026",
+ "signed": "eyJjaGFubmVsIjogImZlZWQtbmV3cyIsICJpdGVtcyI6IFt7ImRlc2NyaXB0aW9uIjogIkV4cGxvcmUgdGhpcnR5IGxlc3NvbnMsIG1ha2UgbXVzaWMsIGJ1aWxkIGEgZ2FtZSwgb3Igb3BlbiBhIGZlYXR1cmVkIHByb2plY3QgYW5kIG1ha2UgaXQgeW91ciBvd24uIiwgImlkIjogInNwYXJreTMiLCAidGl0bGUiOiAiU3Bhcmt5IDMgaXMgaGVyZSIsICJ1cmwiOiAiaHR0cHM6Ly9zcGFya3ktY29kZS53ZWIuYXBwL3JlbGVhc2VzIn1dLCAia2luZCI6ICJuZXdzIiwgInByb2R1Y3QiOiAic3Bhcmt5IiwgInZlcnNpb24iOiAiMy4wLjAifQ==",
+ "sig": "tprz6io134V/4A2piTpaRCyyX6hZVQvdzEJS1gJMJFwHk7YDDjIPEZ1Nxb9l0JdlLUSdSCoMAL7mNiv/Gw2LCw=="
+}

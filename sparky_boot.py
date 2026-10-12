@@ -19,8 +19,8 @@ import re
 import sys
 from pathlib import Path
 
-BASE_VERSION = "3.0.0-alpha.5"   # the version of the code built into this app
-RUNTIME = 1                      # bump when Python, Qt or the bundled libraries change
+BASE_VERSION = "3.0.0"   # the version of the code built into this app
+RUNTIME = 2                      # final 3.0 refreshes bundled Windows/Linux libraries
 
 running_pack = None              # the pack version in use, or None for the built-in code
 notice = ""                      # a message for the app to show once, e.g. after a rollback
@@ -29,6 +29,8 @@ _tries_limit = 2
 
 
 def data_dir():
+    if os.environ.get('SPARKY_DATA_DIR'):
+        return Path(os.environ['SPARKY_DATA_DIR']).expanduser().resolve()
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / "Sparky"
     if sys.platform == "win32":

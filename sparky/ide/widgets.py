@@ -47,6 +47,31 @@ class IconButton(QToolButton):
         if palette is not None:
             self.apply_palette(palette)
 
+    def animate_icon(self, size):
+        previous = getattr(self, '_hover_animation', None)
+        if previous:
+            previous.stop()
+            previous.deleteLater()
+            self._hover_animation = None
+        if REDUCE_MOTION['on']:
+            self.setIconSize(QSize(self.icon_size, self.icon_size)); return
+        animation = QPropertyAnimation(self, b'iconSize', self)
+        animation.setDuration(110)
+        animation.setStartValue(self.iconSize())
+        animation.setEndValue(QSize(size, size))
+        self._hover_animation = animation
+        animation.finished.connect(animation.deleteLater)
+        animation.finished.connect(lambda: setattr(self, '_hover_animation', None))
+        animation.start()
+
+    def enterEvent(self, event):
+        self.animate_icon(self.icon_size + 2)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.animate_icon(self.icon_size)
+        super().leaveEvent(event)
+
     def apply_palette(self, p):
         color = p.get(self.role, p["muted"])
         self.setIcon(icons.icon(self.icon_name, color, self.icon_size, active=p["accent"],
@@ -148,6 +173,12 @@ class Badge(QLabel):
 
 
 def fade_in(widget, ms=180):
+    previous = getattr(widget, '_fade_animation', None)
+    if previous:
+        previous.stop()
+        previous.deleteLater()
+        widget._fade_animation = None
+        widget.setGraphicsEffect(None)
     if REDUCE_MOTION["on"]:
         widget.show()
         return
@@ -158,7 +189,13 @@ def fade_in(widget, ms=180):
     anim.setStartValue(0.0)
     anim.setEndValue(1.0)
     anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-    anim.finished.connect(lambda: widget.setGraphicsEffect(None))
+    widget._fade_animation = anim
+    def finish():
+        if widget._fade_animation is anim:
+            widget.setGraphicsEffect(None)
+            widget._fade_animation = None
+        anim.deleteLater()
+    anim.finished.connect(finish)
     widget.show()
     anim.start()
 

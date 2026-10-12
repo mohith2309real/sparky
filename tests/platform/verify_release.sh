@@ -17,6 +17,8 @@ W=$T/win && mkdir -p "$W/Sparky"
 (cd build/windows/nsis && cp -R Python pkgs Sparky.launch.pyw "$W/Sparky/" \
   && cp -R assets examples extensions GUIDE.md sparky-installed.txt "$W/Sparky/pkgs/")
 cp -R "$T/web" tests/mock_ai_server.py tests/platform/wine_test.sh "$W/"
+cp build/release/Sparky-Setup.exe "$W/"
+.buildvenv/bin/python -m zipfile -e build/release/Sparky-Portable.zip "$W/"
 {
   echo "=== macOS ($(sw_vers -productVersion))"
   .venv/bin/python tests/mock_ai_server.py 8773 >/dev/null 2>&1 &

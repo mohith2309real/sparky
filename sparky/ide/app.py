@@ -53,7 +53,7 @@ from .stage import StageModel, StageView, StageWindow
 from .stage_tools import ChoiceBar, CostumePicker, GifRecorder, Speaker, SpritesPanel
 from .theme import DARK, LIGHT, build_qss, load_fonts
 from .tour import TourOverlay, build_steps
-from .widgets import (Card, IconButton, Pill, SpeedControl, Toasts, UpdateBar, REDUCE_MOTION,
+from .widgets import (Badge, Card, IconButton, Pill, SpeedControl, Toasts, UpdateBar, REDUCE_MOTION, fade_in,
                       retint, text_button)
 from ..lang import SparkyError
 from ..lang.to_python import to_python
@@ -317,6 +317,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(7, 8, 7, 8)
         layout.setSpacing(4)
         self.activity_buttons = {}
+        self.activity_badges = {}
 
         def add(key, icon_name, tip, slot, checkable=True):
             b = IconButton(icon_name, tip, size=21, checkable=checkable)
@@ -324,6 +325,7 @@ class MainWindow(QMainWindow):
             b.clicked.connect(slot)
             layout.addWidget(b)
             self.activity_buttons[key] = b
+            self.activity_badges[key] = Badge(b)
             return b
 
         add("home", "home", "Home", self.show_home)
@@ -335,17 +337,18 @@ class MainWindow(QMainWindow):
         return bar
 
     def build_workspace(self):
+        from .lazy_panel import LazyPanel
         self.blocks = BlockPalette(
             self.palette_colors, self.insert_block,
             extra_categories=self.extension_manager.api.block_categories)
-        self.files_panel = FilesPanel(self)
-        self.ai_panel = AIPanel(self)
-        self.extensions_panel = ExtensionsPanel(self)
-        self.arduino_panel = ArduinoPanel(self)
+        self.files_panel = LazyPanel(FilesPanel,self)
+        self.ai_panel = LazyPanel(AIPanel,self)
+        self.extensions_panel = LazyPanel(ExtensionsPanel,self)
+        self.arduino_panel = LazyPanel(ArduinoPanel,self)
         self.arduino_panel.message.connect(lambda text: self.toast(text, 3000))
-        self.outline_panel = OutlinePanel(self)
-        self.debug_panel = DebugPanel(self)
-        self.assets_panel = AssetsPanel(self)
+        self.outline_panel = LazyPanel(OutlinePanel,self)
+        self.debug_panel = LazyPanel(DebugPanel,self)
+        self.assets_panel = LazyPanel(AssetsPanel,self)
         self.sidebar = QStackedWidget()
         self.sidebar.setObjectName("SidePanel")
         self.sidebar.setMinimumWidth(230)
@@ -752,6 +755,7 @@ class MainWindow(QMainWindow):
             return
         self.sidebar.setCurrentIndex(index)
         self.sidebar.show()
+        fade_in(self.sidebar)
         for k, _i, _t in SIDEBAR:
             self.activity_buttons[k].setChecked(k == key)
         self.activity_buttons["home"].setChecked(False)
@@ -1604,7 +1608,7 @@ class MainWindow(QMainWindow):
                 self.ai_panel.save_chat()
                 self.ai_panel.chat_store.rename_project(folder, target)
                 if self.ai_panel.chat_project == folder:
-                    self.ai_panel.chat_project = target
+                    self.ai_panel.ensure().chat_project = target
                 for editor in self.editors():
                     if editor.path and editor.path.is_relative_to(folder):
                         editor.path = target / editor.path.relative_to(folder)
@@ -1832,6 +1836,7 @@ class MainWindow(QMainWindow):
             self.stage_window.view.apply_palette(dict(palette, surface="#000000"))
         self.blocks.apply_palette(palette)
         self.ai_panel.apply_palette()
+        self.console.palette_colors=palette; self.console.gutter.update()
         retint(palette)
         self.theme_button.set_icon_name("sun" if self.dark else "moon", palette)
         if key in getattr(self, "theme_actions", {}):
@@ -1849,6 +1854,9 @@ class MainWindow(QMainWindow):
     def console_write(self, text, color=None, kind=None):
         if kind is None:
             kind = "error" if color == self.palette_colors.get("danger") else "info"
+        if color is None:
+            role={'say':'text','question':'sky','answer':'success','error':'danger','info':'muted'}.get(kind,'text')
+            color=self.palette_colors[role]
         self.console.add(text, color, kind)
 
     def console_say(self, text):
@@ -1906,6 +1914,7 @@ class MainWindow(QMainWindow):
         editor = self.editor
         lang = editor.language
         self.last_error = ""
+        self.activity_badges['debug'].show_count('')
         self.run_count += 1
         if lang.runner == "arduino" or (lang.runner == "stage" and not step
                                         and is_arduino_program(editor.toPlainText())):
@@ -2078,12 +2087,12 @@ class MainWindow(QMainWindow):
             self.runner.set_speed(value)
 
     def on_ask(self, prompt):
-        self.console_write("❓ " + prompt, self.palette_colors["sky"])
+        self.console_write(prompt,kind='question')
         self.ask_input.setEnabled(True)
         self.ask_input.setFocus()
 
     def on_choice(self, prompt, choices):
-        self.console_write("❓ " + prompt, self.palette_colors["sky"])
+        self.console_write(prompt,kind='question')
         self.choice_bar.show_choices(choices)
         self.ask_input.setEnabled(True)
         self.ask_input.setPlaceholderText("click an answer, or type it (or its number)…")
@@ -2091,7 +2100,7 @@ class MainWindow(QMainWindow):
     def send_choice(self, choice):
         if not (self.runner and self.runner.isRunning()):
             return
-        self.console_write("✏️ " + choice, self.palette_colors["muted"])
+        self.console_write(choice,kind='answer')
         self.ask_input.clear()
         self.ask_input.setEnabled(False)
         self.ask_input.setPlaceholderText("answers go here when a program asks…")
@@ -2114,7 +2123,7 @@ class MainWindow(QMainWindow):
             return
         if not (self.runner and self.runner.isRunning()) or not self.ask_input.isEnabled():
             return
-        self.console_write("✏️ " + text, self.palette_colors["muted"])
+        self.console_write(text,kind='answer')
         self.ask_input.clear()
         self.ask_input.setEnabled(False)
         self.choice_bar.hide()
@@ -2122,6 +2131,7 @@ class MainWindow(QMainWindow):
         self.runner.answer(text)
 
     def on_error(self, message, line):
+        self.activity_badges['debug'].show_count('!')
         self.last_error = message
         self.refresh_ai_actions()
         self.stage.set_mood("oops")
@@ -2397,6 +2407,7 @@ class MainWindow(QMainWindow):
         self.updates.check(manual=manual)
 
     def update_available(self, update):
+        self.activity_badges['settings'].show_count('1')
         if update.kind == "manual":
             self.update_label.setText(f"Sparky {update.version} is out")
             self.update_label.show()
@@ -2478,6 +2489,13 @@ class MainWindow(QMainWindow):
     # ---------- closing ----------
 
     def closeEvent(self, event):
+        news = self.home_page.feed_worker
+        if news and news.isRunning():
+            news.requestInterruption()
+            if not news.wait(100):
+                self.toast('Finishing the news request before closing…')
+                event.ignore()
+                return
         worker = self.ai_panel.worker
         if worker and worker.isRunning():
             worker.cancel()

@@ -8,6 +8,7 @@
 
 set -e
 cd "$(dirname "$0")/.."
+.venv/bin/python scripts/archive_build.py dist build/Sparky
 
 echo "Building standalone Sparky.app (this takes a minute)..."
 EXTRA=($(.venv/bin/python scripts/stdlib_imports.py))
@@ -33,13 +34,7 @@ rm -f dist/Sparky-macOS.zip
 ditto -c -k --keepParent dist/Sparky.app dist/Sparky-macOS.zip
 
 echo "Building the drag-to-Applications installer..."
-rm -rf dist/dmg-stage dist/Sparky-Installer.dmg
-mkdir -p dist/dmg-stage
-cp -R dist/Sparky.app dist/dmg-stage/
-ln -s /Applications dist/dmg-stage/Applications
-hdiutil create -volname "Sparky" -srcfolder dist/dmg-stage -ov -format UDZO \
-  -imagekey zlib-level=9 dist/Sparky-Installer.dmg >/dev/null
-rm -rf dist/dmg-stage
+.buildvenv/bin/python scripts/make_dmg.py
 
 echo "Done:"
 du -sh dist/Sparky.app dist/Sparky-macOS.zip dist/Sparky-Installer.dmg

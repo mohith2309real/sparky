@@ -12,6 +12,8 @@ from pathlib import Path
 
 def data_dir():
     """Sparky's own app-data folder (not the user's ~/Sparky projects folder)."""
+    if os.environ.get('SPARKY_DATA_DIR'):
+        return Path(os.environ['SPARKY_DATA_DIR']).expanduser().resolve()
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / "Sparky"
     if sys.platform == "win32":

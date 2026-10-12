@@ -453,7 +453,7 @@ class SettingsDialog(QDialog):
 
     def page_privacy(self, layout):
         s = self.settings
-        self.offline = QCheckBox("Offline mode: Sparky never connects to the internet")
+        self.offline = QCheckBox("Offline mode: pause online features and downloads")
         self.offline.setChecked(s.value("offline", False, type=bool))
         layout.addWidget(self.offline)
         layout.addWidget(note(
@@ -654,6 +654,8 @@ class SettingsDialog(QDialog):
         s.setValue("offline", self.offline.isChecked())
         if self.offline.isChecked():
             w.updates.cancel()
+            if w.home_page.feed_worker and w.home_page.feed_worker.isRunning():
+                w.home_page.feed_worker.requestInterruption()
             if w.ai_panel.worker and w.ai_panel.worker.isRunning(): w.ai_panel.worker.cancel()
         s.setValue("reduce_motion", self.reduce_motion.isChecked())
         for key,box in self.access_options.items(): s.setValue(key,box.isChecked())

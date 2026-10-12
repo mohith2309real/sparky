@@ -24,10 +24,10 @@ INK = QColor("#141413")
 PANEL = QColor("#1d1c1a")
 CREAM = QColor("#faf9f5")
 MUTED = QColor("#8a887e")
-CORAL, SKY, SAGE = QColor("#d97757"), QColor("#6a9bcc"), QColor("#788c5d")
+CORAL, SKY, SAGE = QColor("#d97757"), QColor("#3f7fbf"), QColor("#6f8a4f")
 
 
-def font(px, weight=QFont.Weight.DemiBold, family="Avenir Next"):
+def font(px, weight=QFont.Weight.DemiBold, family="Bricolage Grotesque"):
     f = QFont(family)
     f.setPixelSize(int(px * S))
     f.setWeight(weight)
@@ -99,6 +99,9 @@ def spiral():
 
 def main():
     app = QApplication(sys.argv)  # noqa: F841
+    from pathlib import Path
+    from sparky.ide.theme import load_fonts
+    load_fonts(Path(ROOT)/"assets")
     img = QImage(W, H, QImage.Format.Format_ARGB32)
     img.fill(QColor("#0f0f0e"))
     p = QPainter(img)

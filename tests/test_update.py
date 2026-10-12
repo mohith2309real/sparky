@@ -217,7 +217,7 @@ check("pack is reproducible", hashlib.sha256(pack_zip.read_bytes()).hexdigest() 
       hashlib.sha256(make_pack.build(tmp / "again").read_bytes()).hexdigest())
 
 
-def make_test_pack(version, runtime=1):
+def make_test_pack(version, runtime=sparky_boot.RUNTIME):
     """A pack zip whose sparky/__init__.py says `version`."""
     target = tmp / f"pack-{version}.zip"
     files = {}
@@ -238,7 +238,7 @@ def make_test_pack(version, runtime=1):
 updates = tmp / "data" / "updates"
 sparky_boot.data_dir = lambda: tmp / "data"
 newer_version = "9.0.0"
-install.install_pack(make_test_pack(newer_version), newer_version, 1, "x" * 64, root=updates)
+install.install_pack(make_test_pack(newer_version), newer_version, sparky_boot.RUNTIME, "x" * 64, root=updates)
 state = install.load_state(updates)
 check("pack becomes current", state["current"] == newer_version)
 check("pack folder has pack.json", (updates / "packs" / newer_version / "pack.json").exists())
@@ -246,7 +246,7 @@ folder, version = sparky_boot.choose_pack()
 check("boot loader picks the pack", version == newer_version and folder.name == newer_version)
 
 try:
-    install.install_pack(make_test_pack("9.0.1", runtime=7), "9.0.1", 1, "x" * 64, root=updates)
+    install.install_pack(make_test_pack("9.0.1", runtime=7), "9.0.1", sparky_boot.RUNTIME, "x" * 64, root=updates)
     check("pack for another runtime refused", False)
 except install.InstallError:
     check("pack for another runtime refused", install.load_state(updates)["current"] == newer_version)
@@ -255,12 +255,12 @@ evil = tmp / "evil.zip"
 with zipfile.ZipFile(evil, "w") as z:
     z.writestr("../outside.txt", "nope")
 try:
-    install.install_pack(evil, "9.0.2", 1, "x" * 64, root=updates)
+    install.install_pack(evil, "9.0.2", sparky_boot.RUNTIME, "x" * 64, root=updates)
     check("zip with ../ refused", False)
 except install.InstallError:
     check("zip with ../ refused", not (updates / "outside.txt").exists())
 
-install.install_pack(make_test_pack("9.1.0"), "9.1.0", 1, "x" * 64, root=updates)
+install.install_pack(make_test_pack("9.1.0"), "9.1.0", sparky_boot.RUNTIME, "x" * 64, root=updates)
 state = install.load_state(updates)
 check("previous version remembered", state["previous"] == newer_version and state["current"] == "9.1.0")
 
@@ -283,7 +283,7 @@ sparky_boot.mark_good()
 check("mark_good clears the marker", not (updates / "booting.json").exists())
 
 # packs older than the built-in code are ignored
-install.install_pack(make_test_pack("1.0.0"), "1.0.0", 1, "x" * 64, root=updates)
+install.install_pack(make_test_pack("1.0.0"), "1.0.0", sparky_boot.RUNTIME, "x" * 64, root=updates)
 check("old pack ignored", sparky_boot.choose_pack() == (None, None))
 install.prune(updates, keep={"1.0.0"})
 check("prune removes old packs", [p.name for p in (updates / "packs").iterdir()] == ["1.0.0"])

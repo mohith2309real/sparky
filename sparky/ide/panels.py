@@ -53,6 +53,11 @@ class FilesPanel(QWidget):
                            "file to open it in a tab.")
         self.hint.setWordWrap(True)
         self.hint.setObjectName("FileLabel")
+        from . import mascot
+        self.empty_face = QLabel()
+        self.empty_face.setPixmap(mascot.pixmap(56, 'thinking'))
+        self.empty_face.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.empty_face)
         layout.addWidget(self.hint)
         layout.addStretch(0)
         self.folder = None
@@ -67,6 +72,7 @@ class FilesPanel(QWidget):
         folder = Path(folder)
         if not folder.is_dir():
             return
+        self.empty_face.hide()
         self.folder = folder
         root = self.model.setRootPath(str(folder))
         self.tree.setRootIndex(root)

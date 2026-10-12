@@ -7,16 +7,35 @@ import re
 import time
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QTextCursor
+from PyQt6.QtGui import QTextCursor,QPainter,QColor
 from PyQt6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                              QListWidgetItem, QPlainTextEdit, QPushButton, QTreeWidget,
                              QTreeWidgetItem, QVBoxLayout, QWidget)
+from . import icons
 
 from ..lang import SparkyError, format_value
 
 LINE_RE = re.compile(r"\bLine (\d+)\b")
 LESSON_RE = re.compile(r"📖 Learn about this: (.+?)(?:\s+—|$)")
 
+
+CONSOLE_KINDS=('info','say','question','answer','error')
+class ConsoleGutter(QWidget):
+    def paintEvent(self,event):
+        view=self.parentWidget(); painter=QPainter(self)
+        colors=getattr(view,'palette_colors',{})
+        painter.fillRect(self.rect(),QColor(colors.get('editor_bg','#fffefb')))
+        block=view.firstVisibleBlock()
+        while block.isValid():
+            top=view.blockBoundingGeometry(block).translated(view.contentOffset()).top()
+            height=view.blockBoundingRect(block).height()
+            if top>self.height(): break
+            if block.isVisible() and block.userState()>0:
+                kind=CONSOLE_KINDS[block.userState()-1]
+                name={'info':'info','say':'code','question':'help','answer':'check','error':'error'}[kind]
+                role={'info':'muted','say':'text','question':'sky','answer':'success','error':'danger'}[kind]
+                painter.drawPixmap(3,int(top+(min(height,view.fontMetrics().height())-16)/2),icons.pixmap(name,colors.get(role,'#6f6d66'),16))
+            block=block.next()
 
 class ConsoleView(QPlainTextEdit):
     """The console. Remembers what kind each line is, so it can show only
@@ -33,6 +52,19 @@ class ConsoleView(QPlainTextEdit):
         self.filter = "all"        # all · say · problems
         self.viewport().setCursor(Qt.CursorShape.IBeamCursor)
         self.setMouseTracking(True)
+        self.gutter=ConsoleGutter(self); self.setViewportMargins(22,0,0,0)
+        self.updateRequest.connect(lambda *_:self.gutter.update())
+
+    def resizeEvent(self,event):
+        super().resizeEvent(event)
+        rect=self.contentsRect(); self.gutter.setGeometry(rect.left(),rect.top(),22,rect.height())
+
+    def append_entry(self,kind,body):
+        start=0 if self.document().isEmpty() else self.blockCount()
+        self.appendHtml(body)
+        block=self.document().findBlockByNumber(start)
+        if block.isValid(): block.setUserState(CONSOLE_KINDS.index(kind)+1 if kind in CONSOLE_KINDS else 1)
+        self.gutter.update()
 
     def add(self, text, color=None, kind="info"):
         style = f' style="color:{color}"' if color else ""
@@ -42,7 +74,7 @@ class ConsoleView(QPlainTextEdit):
         if len(self.entries) > 4000:
             del self.entries[:1000]
         if self.shows(kind):
-            self.appendHtml(entry[1])
+            self.append_entry(kind,entry[1])
             bar = self.verticalScrollBar()
             bar.setValue(bar.maximum())
 
@@ -55,7 +87,7 @@ class ConsoleView(QPlainTextEdit):
         super().clear()
         for kind, body in self.entries:
             if self.shows(kind):
-                self.appendHtml(body)
+                self.append_entry(kind,body)
 
     def clear(self):
         self.entries = []

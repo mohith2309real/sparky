@@ -7,8 +7,10 @@ from pathlib import Path
 from common import REPO, SITES
 sys.path.insert(0,str(REPO))
 from sparky.ide import docs
+from export_design import export
 
 site=SITES/'sparky'
+export(site)
 fonts=site/'fonts'; fonts.mkdir(exist_ok=True)
 for path in (REPO/'assets'/'fonts').iterdir():
     if path.is_file(): shutil.copy2(path,fonts/path.name)
@@ -20,6 +22,7 @@ css='''@font-face{font-family:Figtree;src:url(fonts/Figtree.ttf);font-display:sw
 main,nav,footer{max-width:1040px;margin:auto;padding:28px 24px}nav{display:flex;align-items:center;gap:24px;border-bottom:1px solid var(--line)}nav .brand{margin-right:auto;font:800 23px Bricolage,system-ui,sans-serif;color:var(--ink);text-decoration:none}
 a{color:var(--accent);text-underline-offset:4px}h1,h2,h3{font-family:Bricolage,system-ui,sans-serif}h1{font-size:clamp(38px,7vw,66px);line-height:1.05;letter-spacing:-2px;margin:20px 0}h2{font-size:29px;margin-top:42px}h3{font-size:22px;margin:0 0 10px}.eyebrow{font-size:13px;letter-spacing:2px;font-weight:700;color:var(--muted)}.lede{max-width:720px;font-size:21px;color:var(--muted)}
 pre{background:#eeece5;padding:20px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere}code{font:14px/1.6 JetBrains,ui-monospace,monospace}input{width:100%;font:inherit;padding:15px;border:1px solid var(--line);border-radius:12px;background:#fffefb}.entries{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:30px}.entry{border-top:1px solid var(--line);padding:24px 0;scroll-margin-top:24px}.entry p{margin-top:0}.entry[hidden]{display:none}.entry small{color:var(--muted)}details{border-top:1px solid var(--line);padding:22px 0}summary{font-size:23px;font-weight:700;cursor:pointer}footer{border-top:1px solid var(--line);margin-top:48px}a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #006b8f;outline-offset:4px}@media(max-width:650px){.entries{grid-template-columns:1fr}nav{gap:14px;flex-wrap:wrap}main,nav,footer{padding:22px 18px}.lede{font-size:19px}}'''
+css='@import url("tokens.css");\n'+css.replace(':root{--bg:#faf9f5;--ink:#141413;--muted:#6f6d66;--line:#e2ded2;--accent:#9d422b}', ':root{--ink:var(--text)}').replace('color:var(--accent);text-underline', 'color:var(--syn-cmd);text-underline')
 (site/'docs.css').write_text(css)
 def page(title,description,body,script=''):
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+html.escape(title)+' · Sparky</title><meta name="description" content="'+html.escape(description,quote=True)+'"><link rel="icon" href="logo.png"><link rel="stylesheet" href="docs.css"></head><body><nav><a class="brand" href="/">⚡ Sparky</a><a href="docs">Reference</a><a href="teachers">Teachers</a><a href="faq">FAQ</a><a href="releases">Releases</a></nav><main>'+body+'</main><footer>Made by <a href="https://mohith2309.web.app">Mohith</a> · <a href="verify">Check a download</a></footer>'+script+'</body></html>'
@@ -45,6 +48,6 @@ questions=[
 ('How do beta updates work?','Sparky verifies signed manifests and downloads. Small code packs use the existing runtime; a runtime change requires a full app update. The app can roll back a pack that repeatedly fails to start.'),
 ('What has been tested?','Automated language and native UI checks, frozen Mac update and rollback tests, Python 3.10 compatibility, Linux arm64 and x86_64, and Windows under Wine. Physical Arduino uploads and the Windows installer on a real PC remain unverified.'),
 ]
-body='<p class="eyebrow">A FEW USEFUL ANSWERS</p><h1>Before you press Run.</h1><p class="lede">How Sparky works, where your files live, and what to expect from the beta.</p>'+''.join('<details><summary>'+html.escape(q)+'</summary><p>'+html.escape(a)+'</p></details>' for q,a in questions)
+body='<p class="eyebrow">A FEW USEFUL ANSWERS</p><h1>Before you press Run.</h1><p class="lede">How Sparky works, where your files live, and what to expect from the app.</p>'+''.join('<details><summary>'+html.escape(q)+'</summary><p>'+html.escape(a)+'</p></details>' for q,a in questions)
 (site/'faq.html').write_text(page('FAQ','Answers about Sparky, offline coding, AI privacy, classroom use and supported computers.',body))
 print('Generated',len(rows),'reference entries and',len(questions),'FAQ answers.')

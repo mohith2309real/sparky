@@ -3,6 +3,20 @@
 
 RELEASES = [
     {
+        "version": "3.0.0",
+        "date": "2026-10-12",
+        "title": "Little ideas. Real code.",
+        "items": [
+            "Thirty lessons, projects, games, music, Python and Arduino in one native app.",
+            "A refreshed Home with signed news and featured projects you can remix offline.",
+            "Faster startup: optional side panels load only when you open them.",
+            "Console colors and icons for questions, answers, errors and program output.",
+            "Activity badges, gentle motion and friendly empty screens; Reduce Motion stays in control.",
+            "New app icons and installers, file associations, and a portable Windows ZIP.",
+            "A new website, searchable reference, teacher guide and shareable browser playground.",
+        ],
+    },
+    {
         "version": "3.0.0-alpha.5",
         "date": "2026-10-11",
         "title": "Make music, get hints and code together",

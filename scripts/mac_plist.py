@@ -40,6 +40,10 @@ info.update({
         "UTTypeTagSpecification": {"public.filename-extension": ["spark"]},
     }],
 })
+for extension,label,conforms in [('sparky','Sparky project','public.zip-archive'),('sparkytask','Sparky assignment','public.json')]:
+    uti='io.github.mohith2309.sparky.'+extension
+    info['CFBundleDocumentTypes'].append({'CFBundleTypeName':label,'CFBundleTypeRole':'Editor','LSHandlerRank':'Owner','CFBundleTypeExtensions':[extension],'CFBundleTypeIconFile':icon,'LSItemContentTypes':[uti]})
+    info['UTExportedTypeDeclarations'].append({'UTTypeIdentifier':uti,'UTTypeDescription':label,'UTTypeConformsTo':[conforms],'UTTypeTagSpecification':{'public.filename-extension':[extension]}})
 path.write_bytes(plistlib.dumps(info))
 subprocess.run(["codesign", "--force", "--deep", "--sign", "-", str(app)], check=True)
 subprocess.run(["codesign", "--verify", "--deep", "--strict", str(app)], check=True)

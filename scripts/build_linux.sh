@@ -13,7 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 BUILD_PY="${BUILD_PY:-$PWD/.buildvenv/bin/python}"
 OUT=build/linux
-rm -rf "$OUT"
+"$BUILD_PY" scripts/archive_build.py "$OUT"
 mkdir -p "$OUT"
 
 # glibc floors: x86_64 wheels need glibc 2.28+ (2019+ distros);
@@ -45,7 +45,7 @@ build_arch() {
   # running the build, so name backports older Pythons need (exceptiongroup)
   for v in 3.10 3.11 3.12 3.13 3.14; do
     "$BUILD_PY" -m pip download --quiet --only-binary=:all: "${plat[@]}" \
-      --python-version "$v" --implementation cp -d "$wheels" anthropic certifi \
+      --python-version "$v" --implementation cp -d "$wheels" anthropic==1.13.0 certifi \
       exceptiongroup \
       || echo "   (no AI helper wheels for Python $v on $arch)"
   done
@@ -92,7 +92,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/.local/share/sparky"
 mkdir -p "$DEST" "$HOME/.local/bin" "$HOME/.local/share/applications" \
          "$HOME/.local/share/icons/hicolor/256x256/apps"
-rm -rf "$DEST/app"
+if [ -d "$DEST/app" ]; then mv "$DEST/app" "$DEST/app-previous-$(date +%s)"; fi
 cp -R "$SRC/app" "$SRC/sparky" "$SRC/sparky.png" "$SRC/uninstall.sh" "$DEST/"
 chmod +x "$DEST/sparky" "$DEST/uninstall.sh"
 ln -sf "$DEST/sparky" "$HOME/.local/bin/sparky"
@@ -102,11 +102,25 @@ cat > "$HOME/.local/share/applications/sparky.desktop" <<DESK
 Type=Application
 Name=Sparky
 Comment=A coding app for kids
-Exec=$DEST/sparky
+Exec="$DEST/sparky" %f
 Icon=sparky
 Terminal=false
 Categories=Education;Development;
+MimeType=text/x-sparky;application/x-sparky-project;application/x-sparky-task;
 DESK
+mkdir -p "$HOME/.local/share/mime/packages"
+cat > "$HOME/.local/share/mime/packages/sparky.xml" <<'MIME'
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+<mime-type type="text/x-sparky"><comment>Sparky program</comment><sub-class-of type="text/plain"/><glob pattern="*.spark"/></mime-type>
+<mime-type type="application/x-sparky-project"><comment>Sparky project</comment><sub-class-of type="application/zip"/><glob pattern="*.sparky"/></mime-type>
+<mime-type type="application/x-sparky-task"><comment>Sparky assignment</comment><sub-class-of type="application/json"/><glob pattern="*.sparkytask"/></mime-type>
+</mime-info>
+MIME
+command -v update-mime-database >/dev/null 2>&1 && update-mime-database "$HOME/.local/share/mime" >/dev/null 2>&1 || true
+if command -v xdg-mime >/dev/null 2>&1; then
+  xdg-mime default sparky.desktop text/x-sparky application/x-sparky-project application/x-sparky-task || true
+fi
 command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
 echo "Sparky is installed. Find it in your app menu, or type: sparky"
 if command -v ldconfig >/dev/null 2>&1 && ! ldconfig -p 2>/dev/null | grep -q libxcb-cursor; then
@@ -119,7 +133,9 @@ INST
 # Removes Sparky. Your programs in ~/Sparky are kept.
 rm -rf "$HOME/.local/share/sparky"
 rm -f "$HOME/.local/bin/sparky" "$HOME/.local/share/applications/sparky.desktop" \
-      "$HOME/.local/share/icons/hicolor/256x256/apps/sparky.png"
+      "$HOME/.local/share/icons/hicolor/256x256/apps/sparky.png" "$HOME/.local/share/mime/packages/sparky.xml"
+command -v update-mime-database >/dev/null 2>&1 && update-mime-database "$HOME/.local/share/mime" >/dev/null 2>&1 || true
+command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
 echo "Sparky was removed. Your programs in ~/Sparky are still there."
 UNINST
 

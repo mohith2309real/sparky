@@ -235,9 +235,10 @@ class BlockPalette(QScrollArea):
         self.kind = kind
         while self.layout_.count():
             item = self.layout_.takeAt(0)
-            if item.widget():
-                item.widget().setParent(None)
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget:
+                widget.setParent(None)
+                widget.deleteLater()
         self.buttons = []
         self.build(self.palette)
 
@@ -245,8 +246,10 @@ class BlockPalette(QScrollArea):
         self.extra_categories = list(categories)
         while self.layout_.count():
             item = self.layout_.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget:
+                widget.setParent(None)
+                widget.deleteLater()
         self.buttons = []
         self.build(self.palette)
 

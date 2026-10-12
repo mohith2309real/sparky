@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / "scripts" / "release"))
 import make_pack  # noqa: E402
 from common import envelope, runtime, version  # noqa: E402
 
-TEST_VERSION = os.environ.get("OTA_TEST_VERSION", "3.0.0-alpha.99")
+TEST_VERSION = os.environ.get("OTA_TEST_VERSION", "3.0.1")
 FULL_TEST_VERSION = "3.0.99"
 
 

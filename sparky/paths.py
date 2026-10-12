@@ -18,6 +18,7 @@
 # folder, so the installed app itself never changes.
 
 import shutil
+import os
 import sys
 from pathlib import Path
 
@@ -32,7 +33,8 @@ else:
     RESOURCES = _CODE_ROOT
 
 INSTALLED = FROZEN or PACK or (_CODE_ROOT / "sparky-installed.txt").exists()
-USER_DIR = Path.home() / "Sparky" if INSTALLED else _CODE_ROOT
+USER_DIR = (Path(os.environ['SPARKY_USER_DIR']).expanduser().resolve() if os.environ.get('SPARKY_USER_DIR')
+            else Path.home() / "Sparky" if INSTALLED else _CODE_ROOT)
 
 ASSETS_DIR = RESOURCES / "assets"
 EXAMPLES_DIR = RESOURCES / "examples"

@@ -9,10 +9,12 @@ import sys
 from pathlib import Path
 
 from PyQt6.QtGui import QImage
-from PyQt6.QtWidgets import QFileDialog, QInputDialog, QMessageBox
+from PyQt6.QtWidgets import QFileDialog, QDialog, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QMessageBox
 
 from .dialogs import SITE_URL
 from ..paths import ASSETS_DIR, FROZEN
+from .widgets import text_button
+from .dialogs import _face
 
 SPARKY_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -70,17 +72,47 @@ def build_app(folder, name, source, icon=None, assets=None):
     return folder
 
 
+class MakeAppDialog(QDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setWindowTitle('Make an App')
+        self.setMinimumWidth(420)
+        self.icon_path = None
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(14)
+        layout.addWidget(_face(72, 'happy'))
+        title = QLabel('Give your idea a name')
+        title.setObjectName('Heading'); layout.addWidget(title)
+        note = QLabel('Make a fullscreen player with your code, icon and project assets. The computer playing it needs Sparky.')
+        note.setWordWrap(True); note.setObjectName('Muted'); layout.addWidget(note)
+        label = QLabel('App name')
+        self.name_edit = QLineEdit('My App'); self.name_edit.setMaxLength(80)
+        label.setBuddy(self.name_edit); layout.addWidget(label); layout.addWidget(self.name_edit)
+        self.icon_button = text_button('Choose an icon…', icon='image')
+        self.icon_button.clicked.connect(self.choose_icon); layout.addWidget(self.icon_button)
+        row = QHBoxLayout()
+        cancel = text_button('Cancel'); cancel.clicked.connect(self.reject); row.addWidget(cancel)
+        create = text_button('Choose a folder →', object_name='Primary')
+        create.clicked.connect(self.accept); row.addWidget(create); layout.addLayout(row)
+
+    def choose_icon(self):
+        path, _ = QFileDialog.getOpenFileName(self, 'Choose an app icon', '', 'Pictures (*.png *.jpg *.jpeg *.svg *.ico)')
+        if path:
+            self.icon_path = path
+            self.icon_button.setText(Path(path).name)
+
+
 def make_app(main_window):
     editor = main_window.editor
     if editor.language.id != 'sparky' or not editor.toPlainText().strip():
         QMessageBox.information(main_window,'Make an App','Write a Sparky program first, then make it an app.')
         return
-    name,ok = QInputDialog.getText(main_window,'Make an App','What’s your app called?',text='My App')
-    if not ok:
+    dialog = MakeAppDialog(main_window)
+    if dialog.exec() != QDialog.DialogCode.Accepted:
         return
-    name = safe_name(name)
-    icon,_ = QFileDialog.getOpenFileName(main_window,'Choose an app icon (Cancel uses Sparky’s icon)','',
-                                        'Pictures (*.png *.jpg *.jpeg *.svg *.ico)')
+    name = safe_name(dialog.name_edit.text())
+    icon = dialog.icon_path
     where = QFileDialog.getExistingDirectory(main_window,'Where should the app folder go?',str(Path.home()/'Desktop'))
     if not where:
         return

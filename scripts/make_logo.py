@@ -24,14 +24,14 @@ def draw_logo(size):
     # cream tile with soft corner radius
     tile = QPainterPath()
     tile.addRoundedRect(QRectF(16 * s, 16 * s, 480 * s, 480 * s), 110 * s, 110 * s)
-    p.fillPath(tile, QColor("#faf9f5"))
-    p.setPen(QPen(QColor("#e8e6dc"), 6 * s))
+    p.fillPath(tile, QColor("#f8e6dd"))
+    p.setPen(QPen(QColor("#d97757"), 6 * s))
     p.drawPath(tile)
 
     # spark rays behind the mascot (sage + sky)
     p.setPen(Qt.PenStyle.NoPen)
-    for angle, color, length in ((-38, "#6a9bcc", 74), (32, "#788c5d", 64),
-                                 (145, "#6a9bcc", 60), (-150, "#788c5d", 70)):
+    for angle, color, length in ((-38, "#3f7fbf", 74), (32, "#6f8a4f", 64),
+                                 (145, "#3f7fbf", 60), (-150, "#6f8a4f", 70)):
         p.save()
         p.translate(256 * s, 250 * s)
         p.rotate(angle)
