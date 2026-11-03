@@ -182,6 +182,7 @@ def _sprite_attr(name):
 
 
 class Interpreter:
+    _exec_cache = {}
     def __init__(self, program, runtime, base_dir=None, source=None, commands=None):
         self.program = program
         self.commands = dict(commands or {})
@@ -302,39 +303,41 @@ class Interpreter:
 
     def eval(self, node):
         """Evaluate an expression. A generator: use `yield from self.eval(n)`."""
-        if isinstance(node, (A.Num, A.Str, A.Bool)):
+        # Optimization: strict type checks are faster than isinstance in deep recursive evaluation
+        t = type(node)
+        if t is A.Num or t is A.Str or t is A.Bool:
             return node.value
             yield  # pragma: no cover (makes this a generator)
-        if isinstance(node, A.Nothing):
+        elif t is A.Nothing:
             return None
-        if isinstance(node, A.Var):
+        elif t is A.Var:
             return self.get_var(node.name, node.line)
-        if isinstance(node, A.Template):
+        elif t is A.Template:
             out = []
             for part in node.parts:
                 out.append(part if isinstance(part, str)
                            else format_value((yield from self.eval(part))))
             return "".join(out)
-        if isinstance(node, A.ListLit):
+        elif t is A.ListLit:
             items = []
             for item in node.items:
                 items.append((yield from self.eval(item)))
             return items
-        if isinstance(node, A.RecordLit):
+        elif t is A.RecordLit:
             record = {}
             for key, value in node.pairs:
                 record[key] = yield from self.eval(value)
             return record
-        if isinstance(node, A.Field):
+        elif t is A.Field:
             target = yield from self.eval(node.target)
             return self.get_field(target, node.name, node.target, node.line)
-        if isinstance(node, A.Index):
+        elif t is A.Index:
             target = yield from self.eval(node.target)
             index = yield from self.eval(node.index)
             return self.get_item(target, index, node.line)
-        if isinstance(node, A.Call):
+        elif t is A.Call:
             return (yield from self.call(node.name, node.args, node.line))
-        if isinstance(node, A.Random):
+        elif t is A.Random:
             low = self.as_number((yield from self.eval(node.low)), node.line, "random")
             high = self.as_number((yield from self.eval(node.high)), node.line, "random")
             if low > high:
@@ -342,18 +345,18 @@ class Interpreter:
             if low == int(low) and high == int(high):
                 return float(random.randint(int(low), int(high)))
             return random.uniform(low, high)
-        if isinstance(node, A.RandomColor):
+        elif t is A.RandomColor:
             r, g, b = colorsys.hsv_to_rgb(random.random(), 0.65, 0.92)
             return hex_color(r * 255, g * 255, b * 255)
-        if isinstance(node, A.UnOp):
+        elif t is A.UnOp:
             value = yield from self.eval(node.operand)
             return self.unop(node, value)
-        if isinstance(node, A.BinOp):
+        elif t is A.BinOp:
             return (yield from self.eval_binop(node))
-        if isinstance(node, A.KeyDown):
+        elif t is A.KeyDown:
             key = format_value((yield from self.eval(node.key))).strip().lower()
             return bool(self.runtime.key_down(key))
-        if isinstance(node, A.Mouse):
+        elif t is A.Mouse:
             mx, my, down = self.runtime.mouse()
             return {"x": float(mx), "y": float(my), "down": bool(down)}[node.what]
         if isinstance(node, A.Touching):
@@ -771,11 +774,17 @@ class Interpreter:
     def execute(self, stmt):
         if stmt.line in self.break_lines:
             yield ("break", stmt.line)          # a breakpoint: the runner pauses here
-        kind = type(stmt).__name__
-        method = getattr(self, f"exec_{kind}", None)
+
+        # Optimization: caching unbound methods avoids getattr and string formatting overhead
+        t = type(stmt)
+        method = self._exec_cache.get(t)
         if method is None:
-            raise SparkyError("I got confused by this command.", stmt.line)
-        yield from method(stmt)
+            method = getattr(type(self), f"exec_{t.__name__}", None)
+            if method is None:
+                raise SparkyError("I got confused by this command.", stmt.line)
+            self._exec_cache[t] = method
+
+        yield from method(self, stmt)
 
     # ---------- statement handlers ----------
 
