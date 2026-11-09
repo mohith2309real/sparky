@@ -302,39 +302,40 @@ class Interpreter:
 
     def eval(self, node):
         """Evaluate an expression. A generator: use `yield from self.eval(n)`."""
-        if isinstance(node, (A.Num, A.Str, A.Bool)):
+        node_type = type(node)
+        if node_type is A.Num or node_type is A.Str or node_type is A.Bool:
             return node.value
             yield  # pragma: no cover (makes this a generator)
-        if isinstance(node, A.Nothing):
+        if node_type is A.Nothing:
             return None
-        if isinstance(node, A.Var):
+        if node_type is A.Var:
             return self.get_var(node.name, node.line)
-        if isinstance(node, A.Template):
+        if node_type is A.Template:
             out = []
             for part in node.parts:
                 out.append(part if isinstance(part, str)
                            else format_value((yield from self.eval(part))))
             return "".join(out)
-        if isinstance(node, A.ListLit):
+        if node_type is A.ListLit:
             items = []
             for item in node.items:
                 items.append((yield from self.eval(item)))
             return items
-        if isinstance(node, A.RecordLit):
+        if node_type is A.RecordLit:
             record = {}
             for key, value in node.pairs:
                 record[key] = yield from self.eval(value)
             return record
-        if isinstance(node, A.Field):
+        if node_type is A.Field:
             target = yield from self.eval(node.target)
             return self.get_field(target, node.name, node.target, node.line)
-        if isinstance(node, A.Index):
+        if node_type is A.Index:
             target = yield from self.eval(node.target)
             index = yield from self.eval(node.index)
             return self.get_item(target, index, node.line)
-        if isinstance(node, A.Call):
+        if node_type is A.Call:
             return (yield from self.call(node.name, node.args, node.line))
-        if isinstance(node, A.Random):
+        if node_type is A.Random:
             low = self.as_number((yield from self.eval(node.low)), node.line, "random")
             high = self.as_number((yield from self.eval(node.high)), node.line, "random")
             if low > high:
@@ -342,25 +343,25 @@ class Interpreter:
             if low == int(low) and high == int(high):
                 return float(random.randint(int(low), int(high)))
             return random.uniform(low, high)
-        if isinstance(node, A.RandomColor):
+        if node_type is A.RandomColor:
             r, g, b = colorsys.hsv_to_rgb(random.random(), 0.65, 0.92)
             return hex_color(r * 255, g * 255, b * 255)
-        if isinstance(node, A.UnOp):
+        if node_type is A.UnOp:
             value = yield from self.eval(node.operand)
             return self.unop(node, value)
-        if isinstance(node, A.BinOp):
+        if node_type is A.BinOp:
             return (yield from self.eval_binop(node))
-        if isinstance(node, A.KeyDown):
+        if node_type is A.KeyDown:
             key = format_value((yield from self.eval(node.key))).strip().lower()
             return bool(self.runtime.key_down(key))
-        if isinstance(node, A.Mouse):
+        if node_type is A.Mouse:
             mx, my, down = self.runtime.mouse()
             return {"x": float(mx), "y": float(my), "down": bool(down)}[node.what]
-        if isinstance(node, A.Touching):
+        if node_type is A.Touching:
             return self.touching(node.what, node.line)
-        if isinstance(node, A.ReadPin):
+        if node_type is A.ReadPin:
             raise SparkyError(BOARD_ONLY.format(what="read pin"), node.line)
-        if isinstance(node, A.DistanceTo):
+        if node_type is A.DistanceTo:
             tx, ty = self.place_of(node.what, node.line)
             return math.hypot(tx - self.sprite.x, ty - self.sprite.y)
         raise SparkyError("I got confused by this expression.", node.line)
@@ -768,14 +769,21 @@ class Interpreter:
         for stmt in body:
             yield from self.execute(stmt)
 
+    _exec_dispatch = {}
+
     def execute(self, stmt):
         if stmt.line in self.break_lines:
             yield ("break", stmt.line)          # a breakpoint: the runner pauses here
-        kind = type(stmt).__name__
-        method = getattr(self, f"exec_{kind}", None)
+
+        stmt_type = type(stmt)
+        method = self._exec_dispatch.get(stmt_type)
+        if method is None:
+            method = getattr(Interpreter, f"exec_{stmt_type.__name__}", None)
+            Interpreter._exec_dispatch[stmt_type] = method
+
         if method is None:
             raise SparkyError("I got confused by this command.", stmt.line)
-        yield from method(stmt)
+        yield from method(self, stmt)
 
     # ---------- statement handlers ----------
 
