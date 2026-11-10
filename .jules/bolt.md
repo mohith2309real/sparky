@@ -1,0 +1,3 @@
+## 2024-05-24 - QThread `time.sleep()` bottlenecks vs `yieldCurrentThread()`
+**Learning:** In PyQt apps, using `time.sleep(0.001)` inside `QThread` loops (e.g., to "let the UI breathe") artificially limits performance. The OS minimum sleep timer resolution is often 1-15ms. `time.sleep(0)` or `yieldCurrentThread()` are much faster, as they hand control back to the OS scheduler and resume immediately if no other threads (like the UI thread) need CPU time, avoiding the hard minimum delay of sleep.
+**Action:** Use `self.yieldCurrentThread()` instead of `time.sleep(0.001)` to pause QThread executions when sharing CPU time with the main UI thread.
